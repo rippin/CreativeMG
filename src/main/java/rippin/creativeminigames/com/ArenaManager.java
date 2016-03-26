@@ -1,20 +1,25 @@
 package rippin.creativeminigames.com;
 
+import com.intellectualcrafters.plot.object.Plot;
+import com.intellectualcrafters.plot.object.PlotId;
+import com.intellectualcrafters.plot.object.PlotPlayer;
+import com.plotsquared.bukkit.util.BukkitUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
-import rippin.bullyscraft.com.Configs.ArenaConfig;
+import rippin.creativeminigames.com.Configs.PlotArenaConfig;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class ArenaManager {
- private static List<Arena> allArenas = new ArrayList<Arena>();
+ private static HashMap<String, Set<Arena>> allArenas = new HashMap<String, Set<Arena>>();
+    private static HashMap<String, Set<Arena>> allEnabledArenas = new HashMap<String, Set<Arena>>();
  private static List<String> wasInArena = new ArrayList<String>();
+    private static FileConfiguration arenaConfig = PlotArenaConfig.getConfig();
     public static void createArena(Player p, String name) {
         ArenaConfig.getConfig().createSection("Arena." + name);
         Arena a = new Arena(name);
@@ -24,24 +29,6 @@ public class ArenaManager {
 
     }
 
-
-    public static void loadArenas() {
-        getAllArenas().clear();
-        try {
-            for (String key : ArenaConfig.getConfig()
-                    .getConfigurationSection("Arena").getKeys(false)) {
-                System.out.println("Arena " + key
-                        + " has been loaded from file!");
-                Arena a = new Arena(key);
-                allArenas.add(a);
-                parseSpawns(a);
-
-            }
-        } catch (NullPointerException e) {
-            System.out.println("No arenas found!");
-
-        }
-    }
 
     public static void parseSpawns(Arena arena){
         String name = arena.getName();
@@ -86,34 +73,45 @@ public class ArenaManager {
         ArenaConfig.saveFile();
     }
 
-    public static List<Arena> getAllArenas() {
+    public static HashMap<String, Set<Arena>> getAllArenas() {
         return allArenas;
     }
 
-    public static Arena getArena(String name) {
-        Arena arena = null;
-
-        for (Arena allArenas : getAllArenas()) {
-            if (allArenas.getName().equalsIgnoreCase(name)) {
-                arena = allArenas;
-            }
-        }
-
+    public static Arena getArena(String name, PlotPlayer p) {
+        PlotId id = p.getCurrentPlot().getId();
+        ConfigurationSection s = arenaConfig.getConfigurationSection("Arena." + id.x + "-" + id.y + "." + name);
+        GameType type = GameType.valueOf(s.getString("ArenaType"));
+        Arena arena = new Arena(name,type, p.getCurrentPlot());
         return arena;
     }
-    public static boolean isInArena(Player player) {
-        if (player == null){
-            return false;
-        }
-        for (Arena arena : getAllArenas()) {
-            if (arena.getPlayersUUID().contains(player.getUniqueId().toString())){
-                return true;
-            }
+    //Will assume everyone in the plot is in the arena.
+    public static boolean isInArena(Plot plot, Player player) {
+       PlotPlayer p = BukkitUtil.getPlayer(player);
+        Iterator it = allEnabledArenas.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Set<Arena>> entry = (Map.Entry<String, Set<Arena>>) it.next();
+            String[] delim = entry.getKey().split("-");
+            if (plot.getId().x.toString().equalsIgnoreCase(delim[0]) && plot.getId().y.toString().equalsIgnoreCase(delim[1]))
+                if (p.getCurrentPlot().getPlayersInPlot().contains(p)) return true;
+
         }
         return false;
     }
 
-    public static Arena getPlayersArenaUUID(String uuid){
+    public static boolean isInAnyArena(Player player){
+        PlotPlayer p = BukkitUtil.getPlayer(player);
+        Plot plot = p.getCurrentPlot();
+        Iterator it = allEnabledArenas.entrySet().iterator();
+        while (it.hasNext()){
+            Map.Entry<String, Set<Arena>> entry = (Map.Entry<String, Set<Arena>>) it.next();
+            String[] delim = entry.getKey().split("-");
+            if (plot.getId().x.toString().equalsIgnoreCase(delim[0]) && plot.getId().y.toString().equalsIgnoreCase(delim[1]))
+                return true;
+        }
+        return false;
+    }
+
+    public static Arena getPlayersInArena(String uuid){
         for (Arena arena : getAllArenas()){
             if (arena.getPlayersUUID().contains(uuid)){
                 return arena;
@@ -122,26 +120,25 @@ public class ArenaManager {
         return null;
     }
 
-    public static boolean isArena(String name) {
-
-
-        for (Arena arena : getAllArenas()) {
-            if (arena != null && arena.getName() != null) {
-                if (arena.getName().equalsIgnoreCase(name)) {
+    public static boolean isArena(Plot plot, String name) {
+        Iterator it = allEnabledArenas.entrySet().iterator();
+        while (it.hasNext()){
+            Map.Entry<String, Set<Arena>> entry = (Map.Entry<String, Set<Arena>>) it.next();
+            String[] delim = entry.getKey().split("-");
+            if (plot.getId().x.toString().equalsIgnoreCase(delim[0]) && plot.getId().y.toString().equalsIgnoreCase(delim[1]))
+                for (Arena a : entry.getValue()){
+                    a.getName().equalsIgnoreCase(name);
                     return true;
                 }
-            }
         }
         return false;
     }
 
-    public static void broadcastToArena(Arena arena, String message){
-        List<String> players = arena.getPlayersUUID();
-        for (String uuid : players){
-            Player player = Bukkit.getServer().getPlayer(UUID.fromString(uuid));
-            if (player != null)
-            player.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
+    public static void broadcastToPlot(Plot p, String message){
+        List<PlotPlayer> players = p.getPlayersInPlot();
 
+        for (PlotPlayer p : players){
+            p.sendMessage(ChatColor.translateAlternateColorCodes('&',message));
         }
     }
 
@@ -162,27 +159,7 @@ public class ArenaManager {
 
     }
 
-    public static void enableArena(Arena a, Player sender){
-        if (a != null){
-            a.enable();
-            sender.sendMessage(ChatColor.GREEN + a.getName() + " has been enabled.");
-        }
 
-        else {
-            sender.sendMessage(ChatColor.RED + " that arena does not exist.");
-        }
-    }
-
-    public static void disableArena(Arena a, Player sender){
-        if (a != null){
-            a.disable();
-            sender.sendMessage(ChatColor.GREEN + a.getName() + " has been disbled.");
-        }
-
-        else {
-            sender.sendMessage(ChatColor.RED + " that arena does not exist.");
-        }
-    }
     public static void listArenas(Player sender){
         for (Arena a : getAllArenas()){
             if (a.getSpawns().length != 0) {
