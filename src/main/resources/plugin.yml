@@ -1,4 +1,12 @@
-main: rippin.bullyscraft.something.Main
-name: BullyTitles
+main: rippin.creativeminigames.comCreativeMGMain
+name: BullyMiniGames
 version: 0.1
-description: Something...
+description: BC Creative Server Official Minigames plugin.
+author: RlPN
+depend: [PlotSquared]
+prefix: [CreativeMG]
+
+
+
+
+

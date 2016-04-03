@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -15,17 +16,40 @@ import rippin.creativeminigames.com.Configs.PlotArenaConfig;
 
 import java.util.*;
 
+
 public class ArenaManager {
  private static HashMap<String, Set<Arena>> allArenas = new HashMap<String, Set<Arena>>();
-    private static HashMap<String, Set<Arena>> allEnabledArenas = new HashMap<String, Set<Arena>>();
+    public static HashMap<String, Set<Arena>> allEnabledArenas = new HashMap<String, Set<Arena>>();
  private static List<String> wasInArena = new ArrayList<String>();
     private static FileConfiguration arenaConfig = PlotArenaConfig.getConfig();
     public static void createArena(Player p, String name) {
-        ArenaConfig.getConfig().createSection("Arena." + name);
-        Arena a = new Arena(name);
-        getAllArenas().add(a);
-        ArenaConfig.saveFile();
+        PlotPlayer player = BukkitUtil.getPlayer(p);
+        Plot plot = player.getCurrentPlot();
+        String s = plot.getId().x + "-" + plot.getId().y;
+        arenaConfig.createSection("Arena." + s  + "." + name);
+        Arena a = new Arena(name, plot);
+        if (ArenaManager.getAllArenas().containsKey(a.getStringID()))
+            ArenaManager.getAllArenas().get(a.getStringID()).add(a);
+        else {
+            Set<Arena> set = new HashSet<Arena>();
+                    getAllArenas().put(s, set);
+        }
+        PlotArenaConfig.saveFile();
         p.sendMessage(ChatColor.GREEN + "Arena " + name + " created");
+
+    }
+
+    public static void removeArena(Player p, String name) {
+        PlotPlayer player = BukkitUtil.getPlayer(p);
+        Plot plot = player.getCurrentPlot();
+        String s = plot.getId().x + "-" + plot.getId().y;
+        Arena a = new Arena(name, plot);
+        if (ArenaManager.getAllArenas().containsKey(a.getStringID())) {
+            ArenaManager.getAllArenas().get(a.getStringID()).remove(a);
+            arenaConfig.set("Arena." + s + "." + name, null);
+            PlotArenaConfig.saveFile();
+            p.sendMessage(ChatColor.GREEN + "Arena " + name + " remove");
+        }
 
     }
 
@@ -33,19 +57,19 @@ public class ArenaManager {
     public static void parseSpawns(Arena arena){
         String name = arena.getName();
         int index = 0;
-        for (String key : ArenaConfig.getConfig()
+        for (String key : arenaConfig
                 .getConfigurationSection("Arena." + name + ".Spawn").getKeys(false)) {
-        FileConfiguration config = ArenaConfig.getConfig();
+        FileConfiguration config = arenaConfig;
 
         World w = Bukkit.getWorld(config.getString("Arena." + name + ".Spawn." + index + ".World"));
-        double x = config.getDouble("Arena." + name + ".Spawn." + index + ".X");
-        double y = config.getDouble("Arena." + name + ".Spawn." + index + ".Y");
-        double z = config.getDouble("Arena." + name + ".Spawn." + index + ".Z");
-        float yaw = (float) config.getDouble("Arena." + name + ".Spawn." + index + ".Yaw");
-        float pitch = (float)config.getDouble("Arena." + name + ".Spawn." + index + ".Pitch");
+        double x = config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + index + ".X");
+        double y = config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + index + ".Y");
+        double z = config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + index + ".Z");
+        float yaw = (float) config.getDouble("Arena." + arena.getStringID() + "." + name +".Spawn." + index + ".Yaw");
+        float pitch = (float)config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + index + ".Pitch");
 
         Location loc = new Location(w, x, y, z, yaw, pitch);
-            arena.setSpawn(loc, index);
+            arena.setSpawn(index, loc);
             System.out.println("Set spawn " + index + " for arena " + name);
             index++;
         }
@@ -60,17 +84,16 @@ public class ArenaManager {
         float yaw = loc.getYaw();
         float pitch = loc.getPitch();
 
-        FileConfiguration config = ArenaConfig.getConfig();
 
-        config.set("Arena." + name + ".Spawn." + index + ".World", w);
-        config.set("Arena." + name + ".Spawn." + index + ".X", x);
-        config.set("Arena." + name + ".Spawn." + index + ".Y", y);
-        config.set("Arena." + name + ".Spawn." + index + ".Z", z);
-        config.set("Arena." + name + ".Spawn." + index + ".Yaw", yaw);
-        config.set("Arena." + name + ".Spawn." + index + ".Pitch", pitch);
+        arenaConfig.set("Arena." + arena.getStringID() + "." + name + ".Spawn." + index + ".World", w);
+        arenaConfig.set("Arena." + arena.getStringID() + "." + name  + ".Spawn." + index + ".X", x);
+        arenaConfig.set("Arena." + arena.getStringID() + "." + name +  ".Spawn." + index + ".Y", y);
+        arenaConfig.set("Arena." + arena.getStringID() + "." + name +  ".Spawn." + index + ".Z", z);
+        arenaConfig.set("Arena." + arena.getStringID() + "." + name + ".Spawn." + index + ".Yaw", yaw);
+        arenaConfig.set("Arena." + arena.getStringID() + "." + name +  ".Spawn." + index + ".Pitch", pitch);
 
-        arena.setSpawn(loc, index);
-        ArenaConfig.saveFile();
+        arena.setSpawn(index, loc);
+        PlotArenaConfig.saveFile();
     }
 
     public static HashMap<String, Set<Arena>> getAllArenas() {
@@ -111,11 +134,15 @@ public class ArenaManager {
         return false;
     }
 
-    public static Arena getPlayersInArena(String uuid){
-        for (Arena arena : getAllArenas()){
-            if (arena.getPlayersUUID().contains(uuid)){
-                return arena;
-            }
+    public Arena getPlayersArena(Player player){
+        Iterator it = allEnabledArenas.entrySet().iterator();
+       PlotPlayer p =  BukkitUtil.getPlayer(player);
+        Plot plot = p.getCurrentPlot();
+        while (it.hasNext()){
+            Map.Entry<String, Set<Arena>> entry = (Map.Entry<String, Set<Arena>>) it.next();
+            String[] delim = entry.getKey().split("-");
+            if (plot.getId().x.toString().equalsIgnoreCase(delim[0]) && plot.getId().y.toString().equalsIgnoreCase(delim[1]))
+               return (Arena) entry.getValue().toArray()[0];
         }
         return null;
     }
@@ -137,38 +164,23 @@ public class ArenaManager {
     public static void broadcastToPlot(Plot p, String message){
         List<PlotPlayer> players = p.getPlayersInPlot();
 
-        for (PlotPlayer p : players){
-            p.sendMessage(ChatColor.translateAlternateColorCodes('&',message));
+        for (PlotPlayer pp : players){
+            pp.sendMessage(ChatColor.translateAlternateColorCodes('&',message));
         }
     }
 
 
-    public static void enableAllArenas(Player sender){
-        for (Arena a : getAllArenas()){
-            a.enable();
-            sender.sendMessage(ChatColor.GREEN + a.getName() + " has been enabled.");
+    public static void listArenasInPlot(Plot plot, CommandSender sender){
+        Iterator it = allEnabledArenas.entrySet().iterator();
+        while (it.hasNext()){
+            Map.Entry<String, Set<Arena>> entry = (Map.Entry<String, Set<Arena>>) it.next();
+            String[] delim = entry.getKey().split("-");
+            if (plot.getId().x.toString().equalsIgnoreCase(delim[0]) && plot.getId().y.toString().equalsIgnoreCase(delim[1]))
+                for (Arena a : entry.getValue()){
+                    sender.sendMessage(ChatColor.GRAY + "Current Minigames");
+                    sender.sendMessage(ChatColor.GRAY + "Name: " + ChatColor.GREEN + a.getName() + "| "+
+                            ChatColor.GRAY + "Gametype: " + ChatColor.GREEN + a.getType().getString());
         }
-
-    }
-
-    public static void disableAllArenas(Player sender){
-        for (Arena a : getAllArenas()){
-            a.disable();
-            sender.sendMessage(ChatColor.GREEN + a.getName() + " has been disabled.");
-        }
-
-    }
-
-
-    public static void listArenas(Player sender){
-        for (Arena a : getAllArenas()){
-            if (a.getSpawns().length != 0) {
-            sender.sendMessage(ChatColor.GOLD + "Arena " + ChatColor.RED
-                    + a.getName() + ChatColor.GOLD + " currently: " + ChatColor.RED + a.getState().toString());
-/*                if (a.getState() != ArenaState.VACANT || a.getState() != ArenaState.DISABLED){
-
-          }  */
-            }
         }
     }
 
@@ -180,4 +192,7 @@ public class ArenaManager {
     public static List<String> getWasInArena(){
     return wasInArena;
     }
+
+    public static HashMap<String, Set<Arena>> getAllEnabledArenas() { return allEnabledArenas; }
+
 }
