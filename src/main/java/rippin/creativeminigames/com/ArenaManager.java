@@ -35,8 +35,6 @@ public class ArenaManager {
                     getAllArenas().put(s, set);
         }
         PlotArenaConfig.saveFile();
-        p.sendMessage(ChatColor.GREEN + "Arena " + name + " created");
-
     }
 
     public static void removeArena(Player p, String name) {
@@ -56,23 +54,35 @@ public class ArenaManager {
 
     public static void parseSpawns(Arena arena){
         String name = arena.getName();
-        int index = 0;
-        for (String key : arenaConfig
-                .getConfigurationSection("Arena." + name + ".Spawn").getKeys(false)) {
         FileConfiguration config = arenaConfig;
+        if (config.getConfigurationSection("Arena." + arena.getStringID() + "." + name + ".Spawn.") != null) {
+            for (String key : config.getConfigurationSection("Arena." + arena.getStringID() + "." + name + ".Spawn.").getKeys(false)) {
+                World w = Bukkit.getWorld(config.getString("Arena." + arena.getStringID() + "." + name + ".Spawn." + key + ".World"));
+                double x = config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + key + ".X");
+                double y = config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + key + ".Y");
+                double z = config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + key + ".Z");
+                float yaw = (float) config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + key + ".Yaw");
+                float pitch = (float) config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + key + ".Pitch");
 
-        World w = Bukkit.getWorld(config.getString("Arena." + name + ".Spawn." + index + ".World"));
-        double x = config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + index + ".X");
-        double y = config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + index + ".Y");
-        double z = config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + index + ".Z");
-        float yaw = (float) config.getDouble("Arena." + arena.getStringID() + "." + name +".Spawn." + index + ".Yaw");
-        float pitch = (float)config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + index + ".Pitch");
+                Location loc = new Location(w, x, y, z, yaw, pitch);
+                arena.setSpawn(Integer.valueOf(key), loc);
+                System.out.println("Set spawn " + key + " for arena " + name);
 
-        Location loc = new Location(w, x, y, z, yaw, pitch);
-            arena.setSpawn(index, loc);
-            System.out.println("Set spawn " + index + " for arena " + name);
-            index++;
+            }
         }
+    }
+
+    public static Arena getArena(String name, Plot plot){
+        String s = plot.getId().x + "-" + plot.getId().y;
+        if (getAllArenas().containsKey(s)){
+            Set<Arena> set = getAllArenas().get(s);
+            for (Arena a : set) {
+                if (a.getName().equalsIgnoreCase(name)) {
+                    return a;
+                }
+            }
+        }
+        return loadArena(name, plot);
     }
 
     public static void setSpawn(Arena arena, Location loc, int index){
@@ -84,15 +94,13 @@ public class ArenaManager {
         float yaw = loc.getYaw();
         float pitch = loc.getPitch();
 
-
+        arenaConfig.createSection("Arena." + arena.getStringID() + "." + name + ".Spawn." + index);
         arenaConfig.set("Arena." + arena.getStringID() + "." + name + ".Spawn." + index + ".World", w);
         arenaConfig.set("Arena." + arena.getStringID() + "." + name  + ".Spawn." + index + ".X", x);
         arenaConfig.set("Arena." + arena.getStringID() + "." + name +  ".Spawn." + index + ".Y", y);
         arenaConfig.set("Arena." + arena.getStringID() + "." + name +  ".Spawn." + index + ".Z", z);
         arenaConfig.set("Arena." + arena.getStringID() + "." + name + ".Spawn." + index + ".Yaw", yaw);
-        arenaConfig.set("Arena." + arena.getStringID() + "." + name +  ".Spawn." + index + ".Pitch", pitch);
-
-        arena.setSpawn(index, loc);
+        arenaConfig.set("Arena." + arena.getStringID() + "." + name + ".Spawn." + index + ".Pitch", pitch);
         PlotArenaConfig.saveFile();
     }
 
@@ -100,11 +108,30 @@ public class ArenaManager {
         return allArenas;
     }
 
-    public static Arena getArena(String name, PlotPlayer p) {
-        PlotId id = p.getCurrentPlot().getId();
+    public static Arena loadArena(String name, Plot p) {
+        PlotId id = p.getId();
         ConfigurationSection s = arenaConfig.getConfigurationSection("Arena." + id.x + "-" + id.y + "." + name);
-        GameType type = GameType.valueOf(s.getString("ArenaType"));
-        Arena arena = new Arena(name,type, p.getCurrentPlot());
+        if (s == null) return null;
+        Arena arena;
+        if (s.getString("ArenaType") != null) {
+            GameType type = GameType.getFromString(s.getString("ArenaType"));
+            arena = new Arena(name,type, p);
+        }
+        else {
+            arena = new Arena(name, p);
+        }
+        parseSpawns(arena);
+        //Cache Arena into the hashmap
+        Set<Arena> set;
+        if (getAllArenas().containsKey(arena.getStringID())){
+            set = getAllArenas().get(arena.getStringID());
+        }
+        else{
+            set = new HashSet<Arena>();
+        }
+        set.add(arena);
+        getAllArenas().put(arena.getStringID(), set);
+    //return the arena
         return arena;
     }
     //Will assume everyone in the plot is in the arena.
@@ -148,15 +175,20 @@ public class ArenaManager {
     }
 
     public static boolean isArena(Plot plot, String name) {
-        Iterator it = allEnabledArenas.entrySet().iterator();
+        Iterator it = getAllArenas().entrySet().iterator();
         while (it.hasNext()){
             Map.Entry<String, Set<Arena>> entry = (Map.Entry<String, Set<Arena>>) it.next();
             String[] delim = entry.getKey().split("-");
+            System.out.println(delim[0] + "| " + delim[1]);
             if (plot.getId().x.toString().equalsIgnoreCase(delim[0]) && plot.getId().y.toString().equalsIgnoreCase(delim[1]))
                 for (Arena a : entry.getValue()){
                     a.getName().equalsIgnoreCase(name);
                     return true;
                 }
+        }
+        Arena a = loadArena(name, plot);
+        if (a != null){
+            return true;
         }
         return false;
     }

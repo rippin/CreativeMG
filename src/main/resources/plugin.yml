@@ -1,4 +1,4 @@
-main: rippin.creativeminigames.comCreativeMGMain
+main: rippin.creativeminigames.com.CreativeMGMain
 name: BullyMiniGames
 version: 0.1
 description: BC Creative Server Official Minigames plugin.
@@ -6,6 +6,9 @@ author: RlPN
 depend: [PlotSquared]
 prefix: [CreativeMG]
 
+commands:
+  mini:
+    description: Command for minigames.
 
 
 

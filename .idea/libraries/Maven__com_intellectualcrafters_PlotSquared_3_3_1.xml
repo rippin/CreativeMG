@@ -1,7 +1,7 @@
 <component name="libraryTable">
   <library name="Maven: com.intellectualcrafters:PlotSquared:3.3.1">
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/com/intellectualcrafters/PlotSquared/3.3.1/PlotSquared-3.3.1.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/intellectualcrafters/plotsquared/3.3.1/PlotSquared-3.3.1.jar!/" />
     </CLASSES>
     <JAVADOC>
       <root url="jar://$MAVEN_REPOSITORY$/com/intellectualcrafters/PlotSquared/3.3.1/PlotSquared-3.3.1-javadoc.jar!/" />

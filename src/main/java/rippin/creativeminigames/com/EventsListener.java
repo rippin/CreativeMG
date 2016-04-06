@@ -39,15 +39,15 @@ public class EventsListener implements Listener {
             Player player = event.getPlayer();
             PlotPlayer plotPlayer = BukkitUtil.getPlayer(player);
             Plot plot = plotPlayer.getCurrentPlot();
-            String plotID = plot.getId().x + "-" + plot.getId().y;
             if (plot != null) {
+                String plotID = plot.getId().x + "-" + plot.getId().y;
                 if (ArenaManager.getAllEnabledArenas().containsKey(plotID)) {
                     //since only 1 arena will be anabled at a time atm just get first element.
                     for (Arena a : ArenaManager.getAllEnabledArenas().get(plotID)) {
                         if (a.getType() == GameType.TNTRUN && a.getStatus() == GameStatus.INGAME) {
                             //Run TNTRUN CODE
                             final Block standing = player.getLocation().getBlock();
-                            if (standing.getType() == Material.SAND || standing.getType() == Material.SOUL_SAND) {
+                            if (standing.getType() == Material.SAND || standing.getType() == Material.GRAVEL) {
                                 final Block belowStanding = standing.getLocation().add(0, -1, 0).getBlock();
                                 if (belowStanding.getType() == Material.TNT)
                                     //run delayed task here to remove both blocks;
@@ -140,8 +140,8 @@ public class EventsListener implements Listener {
         Player player = event.getPlayer();
         PlotPlayer plotPlayer = BukkitUtil.getPlayer(player);
         Plot plot = plotPlayer.getCurrentPlot();
-        String id = plot.getId().x + "-" + plot.getId().y;
         if (plot != null) {
+            String id = plot.getId().x + "-" + plot.getId().y;
             if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
                 if (!event.getMessage().equalsIgnoreCase("spawn") || !event.getMessage().toLowerCase().contains("tp")){
                     event.setCancelled(true);
@@ -156,8 +156,9 @@ public class EventsListener implements Listener {
         Player player = event.getPlayer();
         PlotPlayer plotPlayer = BukkitUtil.getPlayer(player);
         Plot plot = plotPlayer.getCurrentPlot();
-        String id = plot.getId().x + "-" + plot.getId().y;
+
         if (plot != null) {
+            String id = plot.getId().x + "-" + plot.getId().y;
             if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
                     event.setCancelled(true);
                 }
@@ -169,8 +170,9 @@ public class EventsListener implements Listener {
         Player player = event.getPlayer();
         PlotPlayer plotPlayer = BukkitUtil.getPlayer(player);
         Plot plot = plotPlayer.getCurrentPlot();
-        String id = plot.getId().x + "-" + plot.getId().y;
+
         if (plot != null) {
+            String id = plot.getId().x + "-" + plot.getId().y;
             if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
                 event.setCancelled(true);
             }
@@ -178,12 +180,13 @@ public class EventsListener implements Listener {
     }
 
     @EventHandler
-    public void breakBlockEvent(PlayerDropItemEvent event) {
+    public void playerDropEvent(PlayerDropItemEvent event) {
         Player player = event.getPlayer();
         PlotPlayer plotPlayer = BukkitUtil.getPlayer(player);
         Plot plot = plotPlayer.getCurrentPlot();
-        String id = plot.getId().x + "-" + plot.getId().y;
+
         if (plot != null) {
+            String id = plot.getId().x + "-" + plot.getId().y;
             if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
                 event.setCancelled(true);
             }

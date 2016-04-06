@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 
 
 public class Commands implements CommandExecutor {
+
     public boolean onCommand(CommandSender commandSender, Command command, String s, String[] args) {
         String unknownArguments = "Error: Illegal command.";
         if (command.getName().equalsIgnoreCase("mini")) {
@@ -26,50 +27,65 @@ public class Commands implements CommandExecutor {
                 //Plot is null if player is not in a plot
                 if (plot != null) {
                     if (plot.isAdded(player.getUniqueId()) || plot.isOwner(player.getUniqueId())) {
-                        if (args[0].equalsIgnoreCase("create")) {
+                        if (args[0].equalsIgnoreCase("create") && args.length == 2) {
                             if (!ArenaManager.isArena(plot, args[0])) {
                                 //TODO: Possibly add an arena limit?
-                                ArenaManager.createArena(player, args[0]);
-                                player.sendMessage(ChatColor.GREEN + "Arena " + args[0] + " has been added.");
+                                ArenaManager.createArena(player, args[1]);
+                                player.sendMessage(ChatColor.GREEN + "Arena " + args[1] + " has been added.");
                             }
-                        } else if (args[0].equalsIgnoreCase("remove")) {
-                            ArenaManager.removeArena(player, args[0]);
-                            player.sendMessage(ChatColor.GREEN + "Arena " + args[0] + " has been removed.");
-                        } else if (args[1].equalsIgnoreCase("setType") && args.length == 3) {
+                        }
+                        else if(args[0].equalsIgnoreCase("list")){
+                            ArenaManager.listArenasInPlot(plot,commandSender);
+                        }
+                        else if (args[0].equalsIgnoreCase("remove") && args.length == 2) {
+                            ArenaManager.removeArena(player, args[1]);
+                            player.sendMessage(ChatColor.GREEN + "Arena " + args[1] + " has been removed.");
+                        }
+                        else if (args[1].equalsIgnoreCase("setType") && args.length == 3) {
                             if (ArenaManager.isArena(plot, args[0])) {
-                                Arena a = new Arena(args[1], plot);
+                                Arena a = ArenaManager.getArena(args[0], plot);
                                 if (a.setType(args[2]))
-                                    player.sendMessage(ChatColor.GREEN + " Type: " + args[2] + " has been set for" +
-                                            "Arena " + args[1] + ".");
+                                    player.sendMessage(ChatColor.GREEN + "Type: " + args[2] + " has been set for" +
+                                            "Arena " + args[0] + ".");
+                                else {
+                                    player.sendMessage(ChatColor.RED + "Not a valid gametype."); //list types maybe?
                                 }
-                            } else if (args[1].equalsIgnoreCase("setSpawn") && args.length == 2) {
+                                }
+                            else {
+                                player.sendMessage(ChatColor.RED + " That is not a valid Arena name."); // list arenas?
+                            }
+                            }
+                        else if (args[1].equalsIgnoreCase("setSpawn") && args.length == 2) {
                                 if (ArenaManager.isArena(plot, args[0])) {
-                                    Arena a = new Arena(args[1], plot);
+                                    Arena a = ArenaManager.getArena(args[0], plot);
                                     int index = 0; //default spawn index
                                     a.setSpawn(index, player.getLocation());
                                     if (a.setSpawn(index, player.getLocation()))
                                         player.sendMessage(ChatColor.GREEN + " Spawn: " + (index + 1) + " has been set for" +
-                                                "Arena " + args[1] + ".");
+                                                "Arena " + args[0] + ".");
                                 }
-                            } else if (args[1].equalsIgnoreCase("setSpawn") && args.length == 3) {
+                            }
+                        else if (args[1].equalsIgnoreCase("setSpawn") && args.length == 3) {
                                 if (ArenaManager.isArena(plot, args[0])) {
-                                    Arena a = new Arena(args[1], plot);
+                                    Arena a = ArenaManager.getArena(args[0], plot);
                                     int index = Integer.valueOf(args[2]);
                                     if (a.setSpawn(index, player.getLocation()))
                                         player.sendMessage(ChatColor.GREEN + " Spawn: " + (index + 1) + " has been set for" +
-                                                "Arena " + args[1] + ".");
+                                                "Arena " + args[0] + ".");
                                 }
 
-                            } else if (args[0].equalsIgnoreCase("start") && args.length == 2) {
-                                if (ArenaManager.isArena(plot, args[0])) {
-                                    Arena a = new Arena(args[1], plot);
+                            }
+                        else if (args[0].equalsIgnoreCase("start") && args.length == 2) {
+                                if (ArenaManager.isArena(plot, args[1])) {
+                                    Arena a = ArenaManager.getArena(args[1], plot);
                                     a.start();
                                     ArenaManager.broadcastToPlot(plot, org.bukkit.ChatColor.GREEN
                                             + args[1] + " arena has been enabled by " + player.getDisplayName());
                                 }
-                            } else if (args[0].equalsIgnoreCase("end") && args.length == 2) {
-                                if (ArenaManager.isArena(plot, args[0])) {
-                                    Arena a = ArenaManager.getArena(args[0], plotPlayer);
+                            }
+                        else if (args[0].equalsIgnoreCase("end") && args.length == 2) {
+                                if (ArenaManager.isArena(plot, args[1])) {
+                                    Arena a = ArenaManager.getArena(args[1], plot);
                                     a.end();
                                     ArenaManager.broadcastToPlot(plot, org.bukkit.ChatColor.GREEN
                                             + args[1] + " arena has been disabled by " + player.getDisplayName());
@@ -78,8 +94,10 @@ public class Commands implements CommandExecutor {
                         }
                     }
                 }
-            } else {
-            commandSender.sendMessage(ChatColor.RED + unknownArguments);
+            else {
+                commandSender.sendMessage(ChatColor.RED + unknownArguments);
+            }
+            return true;
         }
             return false;
     }

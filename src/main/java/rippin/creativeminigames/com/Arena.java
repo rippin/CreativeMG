@@ -8,6 +8,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import rippin.creativeminigames.com.Configs.PlotArenaConfig;
 
 import java.util.*;
 
@@ -22,33 +23,32 @@ public class Arena {
     private String name;
     private GameType type;
     private Plot plot;
-    private List<Location> locations = new ArrayList<Location>();
+    private List<Location> locations = Arrays.asList(new Location[10]);
     private GameStatus status;
     public Arena(String name, GameType type, Plot plot){
-        //all plotplayers.
-        for (PlotPlayer player : plot.getPlayersInPlot())
-        players.add((Player) player);
-
         this.name = name;
         this.type = type;
         this.plot = plot;
         lostPlayers = new ArrayList<Player>();
-        status = GameStatus.ENDING.WAITING;
+        status = GameStatus.WAITING;
         //do gameetype stuff
 
     }
     public Arena(String name, Plot plot){
-        //all plotplayers.
-        for (PlotPlayer player : plot.getPlayersInPlot())
-            players.add((Player) player);
+
         this.name = name;
         this.plot = plot;
-        status = GameStatus.ENDING.WAITING;
+        lostPlayers = new ArrayList<Player>();
+        status = GameStatus.WAITING;
 
     }
     //make sure arena from this plot is not already enabled in command.
     public void start(){
         status = GameStatus.STARTING;
+        for (PlotPlayer player : plot.getPlayersInPlot()) {
+            players.add(Bukkit.getPlayer(player.getUUID()));
+        }
+        System.out.println("size: " + players.size());
         /*
             Check to make sure all settings are enabled.
          */
@@ -56,10 +56,7 @@ public class Arena {
         Set<Arena> set = new HashSet<Arena>();
         set.add(this);
         ArenaManager.allEnabledArenas.put(getStringID(), set);
-        if (type == GameType.TNTRUN){
-            startPlayers(locations.get(0)); //default spawn
-        }
-        new ArenaWarmupTask(this, 1).start();
+        new ArenaWarmupTask(this, 10).start();
     }
 
     public void end(){
@@ -71,13 +68,13 @@ public class Arena {
             public void run() {
                 regenBlocks();
             }
-        },10L);
+        }, 10L);
 
 
         status = GameStatus.WAITING;
     }
 
-    private void startPlayers(Location loc){
+    public void startPlayers(Location loc){
         if (type == GameType.TNTRUN)
         for (Player player : players){
             player.setGameMode(GameMode.ADVENTURE);
@@ -87,9 +84,7 @@ public class Arena {
     }
 
     public void playerWon(List<Player> players){
-        if (type == GameType.TNTRUN) {
             ArenaManager.broadcastToPlot(plot, players.get(0).getDisplayName() + ChatColor.GOLD + " has won");
-        }
     }
     @Override
     public boolean equals(Object that){
@@ -115,14 +110,17 @@ public class Arena {
         return type;
     }
     public boolean setType(String type){
-        if (GameType.valueOf(type) != null) {
-            this.type = GameType.valueOf(type);
+        GameType t = GameType.getFromString(type);
+        if (t != null) {
+            this.type = t;
+            PlotArenaConfig.getConfig().set("Arena." + getStringID() + "." + name + ".ArenaType", this.type.getString());
             return true;
         }
         return false;
     }
     public void setType(GameType type){
         this.type = type;
+        PlotArenaConfig.getConfig().set("Arena." + getStringID() + "." + name + ".ArenaType", type.getString());
     }
 
     public String getStringID(){
@@ -132,15 +130,18 @@ public class Arena {
     public boolean setSpawn(int index, Location loc){
         boolean flag = true;
         if (type == GameType.TNTRUN) {
+
             index = 0 ;
         }
         locations.set(index, loc);
+        ArenaManager.setSpawn(this, loc, index);
         return flag;
     }
 
     public GameStatus getStatus(){
         return status;
     }
+    public void setStatus(GameStatus status) { this.status = status; }
     public void playerLost(Player player){
         player.setGameMode(GameMode.SPECTATOR);
         lostPlayers.add(player);
@@ -178,5 +179,8 @@ public class Arena {
             entry.getKey().getBlock().setType(entry.getValue().getType());
         }
         getData().clear();
+    }
+    public List<Location> getLocations(){
+        return locations;
     }
 }

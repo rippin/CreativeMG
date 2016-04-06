@@ -18,10 +18,15 @@ public class ArenaTask {
     }
 
     public void start(){
+        a.setStatus(GameStatus.INGAME);
         task = Bukkit.getServer().getScheduler().runTaskTimer(CreativeMGMain.plugin, new Runnable() {
+           long i = iteration;
             public void run() {
-                if (a.getType() == GameType.TNTRUN)
-                    if (a.getPlayers().size() == 1){
+                if (i < 0){
+                    ArenaManager.broadcastToPlot(a.getPlot(), "&4Time has run out.");
+                    cancel();
+                }
+                    if (a.getPlayers().size() == 0){ //CHANGE BACK TO 1 JUST FOR TESTING
                         a.playerWon(a.getPlayers());
                         a.end();
                         cancel();
@@ -31,8 +36,9 @@ public class ArenaTask {
                         a.end();
                         cancel();
                     }
+                --i;
             }
-        },1L, iteration * 20L);
+        },1L, 20L);
     }
 
     public void cancel(){

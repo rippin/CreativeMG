@@ -16,7 +16,10 @@ public class ArenaWarmupTask {
     }
 
     public void start(){
-      task =  Bukkit.getServer().getScheduler().runTaskTimer(CreativeMGMain.plugin, new Runnable() {
+        if (a.getType() == GameType.TNTRUN){
+            a.startPlayers(a.getLocations().get(0)); //default spawn
+        }
+        task =  Bukkit.getServer().getScheduler().runTaskTimer(CreativeMGMain.plugin, new Runnable() {
             int i = iteration;
             public void run() {
                 if (i == 10){
@@ -26,7 +29,8 @@ public class ArenaWarmupTask {
                     ArenaManager.broadcastToPlot(a.getPlot(), "&aGame starting in " + i + " seconds.");
                 }
                 if (i == 0){
-                    ArenaTask task = new ArenaTask(a, 1);
+                    ArenaTask task = new ArenaTask(a, 1000);
+                    ArenaManager.broadcastToPlot(a.getPlot(), "&aGame started.");
                     task.start();
                     a.setTask(task);
                     cancel();
