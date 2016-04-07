@@ -131,8 +131,32 @@ public class ArenaManager {
         }
         set.add(arena);
         getAllArenas().put(arena.getStringID(), set);
-    //return the arena
+        //return the arena
         return arena;
+    }
+    public static void loadAllArenasFromPlot(Plot p) {
+        PlotId id = p.getId();
+        for (String name : arenaConfig.getConfigurationSection("Arena." + id.x + "-" + id.y + ".").getKeys(false)) {
+            Arena arena;
+            String s = ("Arena." + id.x + "-" + id.y + "." + name + ".ArenaType");
+            if (arenaConfig.getString(s) != null) {
+                GameType type = GameType.getFromString(arenaConfig.getString(s));
+                arena = new Arena(name, type, p);
+            } else {
+                arena = new Arena(name, p);
+            }
+            parseSpawns(arena);
+            //Cache Arena into the hashmap
+            Set<Arena> set;
+            if (getAllArenas().containsKey(arena.getStringID())) {
+                set = getAllArenas().get(arena.getStringID());
+            } else {
+                set = new HashSet<Arena>();
+            }
+            set.add(arena);
+            getAllArenas().put(arena.getStringID(), set);
+            //return the arena
+        }
     }
     //Will assume everyone in the plot is in the arena.
     public static boolean isInArena(Plot plot, Player player) {
@@ -203,15 +227,20 @@ public class ArenaManager {
 
 
     public static void listArenasInPlot(Plot plot, CommandSender sender){
-        Iterator it = allEnabledArenas.entrySet().iterator();
+        Iterator it = allArenas.entrySet().iterator();
+        sender.sendMessage(ChatColor.GRAY + "Current Minigames");
         while (it.hasNext()){
             Map.Entry<String, Set<Arena>> entry = (Map.Entry<String, Set<Arena>>) it.next();
-            String[] delim = entry.getKey().split("-");
-            if (plot.getId().x.toString().equalsIgnoreCase(delim[0]) && plot.getId().y.toString().equalsIgnoreCase(delim[1]))
+            if (entry.getKey().equalsIgnoreCase(plot.getId().x + "-" + plot.getId().y))
                 for (Arena a : entry.getValue()){
-                    sender.sendMessage(ChatColor.GRAY + "Current Minigames");
-                    sender.sendMessage(ChatColor.GRAY + "Name: " + ChatColor.GREEN + a.getName() + "| "+
-                            ChatColor.GRAY + "Gametype: " + ChatColor.GREEN + a.getType().getString());
+                    if (a.getType() != null) {
+                        sender.sendMessage(ChatColor.GRAY + "Name: " + ChatColor.GREEN + a.getName() + "| " +
+                                ChatColor.GRAY + "Gametype: " + ChatColor.GREEN + a.getType().getString());
+                    }
+                    else {
+                        sender.sendMessage(ChatColor.GRAY + "Name: " + ChatColor.GREEN + a.getName() + "| " +
+                                ChatColor.GRAY + "Gametype: " + ChatColor.RED + "NOT SET");
+                    }
         }
         }
     }

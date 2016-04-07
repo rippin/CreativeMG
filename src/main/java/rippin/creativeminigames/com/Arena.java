@@ -62,6 +62,10 @@ public class Arena {
     public void end(){
         status = GameStatus.ENDING;
         ArenaManager.getAllEnabledArenas().remove(getStringID());
+        for (Player player : players){
+            player.setGameMode(GameMode.CREATIVE);
+            player.teleport(locations.get(0));
+        }
         getPlayers().clear();
         getLostPlayers().clear();
         Bukkit.getServer().getScheduler().runTaskLater(CreativeMGMain.plugin, new Runnable() {
@@ -69,7 +73,6 @@ public class Arena {
                 regenBlocks();
             }
         }, 10L);
-
 
         status = GameStatus.WAITING;
     }
@@ -84,6 +87,7 @@ public class Arena {
     }
 
     public void playerWon(List<Player> players){
+            if (!players.isEmpty())
             ArenaManager.broadcastToPlot(plot, players.get(0).getDisplayName() + ChatColor.GOLD + " has won");
     }
     @Override
@@ -114,6 +118,7 @@ public class Arena {
         if (t != null) {
             this.type = t;
             PlotArenaConfig.getConfig().set("Arena." + getStringID() + "." + name + ".ArenaType", this.type.getString());
+            PlotArenaConfig.saveFile();
             return true;
         }
         return false;

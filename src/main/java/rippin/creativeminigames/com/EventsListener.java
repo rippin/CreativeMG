@@ -10,6 +10,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -46,21 +47,24 @@ public class EventsListener implements Listener {
                     for (Arena a : ArenaManager.getAllEnabledArenas().get(plotID)) {
                         if (a.getType() == GameType.TNTRUN && a.getStatus() == GameStatus.INGAME) {
                             //Run TNTRUN CODE
-                            final Block standing = player.getLocation().getBlock();
+                            final Block standing = player.getLocation().getBlock().getRelative(BlockFace.DOWN);
                             if (standing.getType() == Material.SAND || standing.getType() == Material.GRAVEL) {
                                 final Block belowStanding = standing.getLocation().add(0, -1, 0).getBlock();
-                                if (belowStanding.getType() == Material.TNT)
+                                if (belowStanding.getType() == Material.TNT) {
                                     //run delayed task here to remove both blocks;
+                                    //TODO you need to clone the block somehow toevert it
+                                    // saving the reference does nothing
                                     a.getData().put(standing.getLocation(), standing);
                                     a.getData().put(belowStanding.getLocation(), belowStanding);
-                                plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
-                                    public void run() {
+                                    plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
+                                        public void run() {
                                             standing.setType(Material.AIR);
                                             belowStanding.setType(Material.AIR);
                                             //set both to air
 
                                         }
                                     }, 20L);
+                                }
 
                             }
                             else if (standing.getType() == Material.WATER || standing.getType() == Material.STATIONARY_WATER){
@@ -85,10 +89,13 @@ public class EventsListener implements Listener {
             if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
                 for (Arena a : ArenaManager.getAllEnabledArenas().get(id)) {
                     //only one arena so you can do this.
-                    a.getLostPlayers().add(player);
-                    a.getPlayers().remove(player);
+                    if (a.getPlayers().contains(player)) {
+                        a.getLostPlayers().add(player);
+                        a.getPlayers().remove(player);
+                        player.sendMessage(ChatColor.RED + "You have left the plot and abandoned the minigame.");
+                    }
                     player.setGameMode(GameMode.CREATIVE); //because  its a creative server
-                    player.sendMessage(ChatColor.RED + "You have left the plot and abandoned the minigame.");
+
                 }
             }
 

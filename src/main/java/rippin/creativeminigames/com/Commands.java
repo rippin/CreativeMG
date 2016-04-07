@@ -34,9 +34,14 @@ public class Commands implements CommandExecutor {
                                 player.sendMessage(ChatColor.GREEN + "Arena " + args[1] + " has been added.");
                             }
                         }
-                        else if(args[0].equalsIgnoreCase("list")){
+                        else if(args[0].equalsIgnoreCase("list") && args.length == 1){
                             ArenaManager.listArenasInPlot(plot,commandSender);
                         }
+                        else if (args[0].equalsIgnoreCase("loadArenas") && args.length == 1) {
+                            ArenaManager.loadAllArenasFromPlot(plot);
+                            player.sendMessage(ChatColor.GREEN + "Arenas have been loaded. Do /mini list to view them.");
+                        }
+
                         else if (args[0].equalsIgnoreCase("remove") && args.length == 2) {
                             ArenaManager.removeArena(player, args[1]);
                             player.sendMessage(ChatColor.GREEN + "Arena " + args[1] + " has been removed.");
@@ -86,9 +91,10 @@ public class Commands implements CommandExecutor {
                         else if (args[0].equalsIgnoreCase("end") && args.length == 2) {
                                 if (ArenaManager.isArena(plot, args[1])) {
                                     Arena a = ArenaManager.getArena(args[1], plot);
-                                    a.end();
                                     ArenaManager.broadcastToPlot(plot, org.bukkit.ChatColor.GREEN
                                             + args[1] + " arena has been disabled by " + player.getDisplayName());
+                                    a.end();
+
                                 }
                             }
                         }
