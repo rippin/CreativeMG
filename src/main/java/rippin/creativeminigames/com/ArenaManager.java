@@ -41,7 +41,7 @@ public class ArenaManager {
         PlotPlayer player = BukkitUtil.getPlayer(p);
         Plot plot = player.getCurrentPlot();
         String s = plot.getId().x + "-" + plot.getId().y;
-        Arena a = new Arena(name, plot);
+        Arena a = ArenaManager.getArena(name, plot);
         if (ArenaManager.getAllArenas().containsKey(a.getStringID())) {
             ArenaManager.getAllArenas().get(a.getStringID()).remove(a);
             arenaConfig.set("Arena." + s + "." + name, null);
@@ -111,6 +111,7 @@ public class ArenaManager {
     public static Arena loadArena(String name, Plot p) {
         PlotId id = p.getId();
         ConfigurationSection s = arenaConfig.getConfigurationSection("Arena." + id.x + "-" + id.y + "." + name);
+
         if (s == null) return null;
         Arena arena;
         if (s.getString("ArenaType") != null) {
@@ -136,6 +137,9 @@ public class ArenaManager {
     }
     public static void loadAllArenasFromPlot(Plot p) {
         PlotId id = p.getId();
+        if (getAllArenas().containsKey(id.x + "-"+ id.y)) {
+            getAllArenas().remove(id.x + "-"+ id.y);
+        }
         for (String name : arenaConfig.getConfigurationSection("Arena." + id.x + "-" + id.y + ".").getKeys(false)) {
             Arena arena;
             String s = ("Arena." + id.x + "-" + id.y + "." + name + ".ArenaType");
@@ -206,7 +210,7 @@ public class ArenaManager {
             System.out.println(delim[0] + "| " + delim[1]);
             if (plot.getId().x.toString().equalsIgnoreCase(delim[0]) && plot.getId().y.toString().equalsIgnoreCase(delim[1]))
                 for (Arena a : entry.getValue()){
-                    a.getName().equalsIgnoreCase(name);
+                   if (a.getName().equalsIgnoreCase(name))
                     return true;
                 }
         }

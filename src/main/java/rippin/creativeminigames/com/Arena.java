@@ -2,10 +2,7 @@ package rippin.creativeminigames.com;
 
 import com.intellectualcrafters.plot.object.Plot;
 import com.intellectualcrafters.plot.object.PlotPlayer;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import rippin.creativeminigames.com.Configs.PlotArenaConfig;
@@ -18,7 +15,7 @@ public class Arena {
     private List<Player> players = new ArrayList<Player>();
     private List<Player> spectators = new ArrayList<Player>();
     private List<Player> lostPlayers;
-    private HashMap<Location, Block> data = new HashMap<Location, Block>();
+    private HashMap<Location, Material> data = new HashMap<Location, Material>();
     private ArenaTask task;
     private String name;
     private GameType type;
@@ -73,7 +70,7 @@ public class Arena {
                 regenBlocks();
             }
         }, 10L);
-
+        task.cancel();
         status = GameStatus.WAITING;
     }
 
@@ -81,6 +78,8 @@ public class Arena {
         if (type == GameType.TNTRUN)
         for (Player player : players){
             player.setGameMode(GameMode.ADVENTURE);
+            player.setHealth(player.getMaxHealth());
+            player.setFoodLevel(20);
             player.teleport(loc);
 
         }
@@ -172,7 +171,7 @@ public class Arena {
         this.task = task;
     }
 
-    public HashMap<Location, Block> getData(){
+    public HashMap<Location, Material> getData(){
         return  data;
     }
 
@@ -180,8 +179,8 @@ public class Arena {
         Iterator it = data.entrySet().iterator();
 
         while (it.hasNext()){
-            Map.Entry<Location, Block> entry = (Map.Entry<Location, Block>) it.next();
-            entry.getKey().getBlock().setType(entry.getValue().getType());
+            Map.Entry<Location, Material> entry = (Map.Entry<Location, Material>) it.next();
+            entry.getKey().getBlock().setType(entry.getValue());
         }
         getData().clear();
     }

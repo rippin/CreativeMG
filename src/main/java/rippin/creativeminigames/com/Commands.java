@@ -28,10 +28,13 @@ public class Commands implements CommandExecutor {
                 if (plot != null) {
                     if (plot.isAdded(player.getUniqueId()) || plot.isOwner(player.getUniqueId())) {
                         if (args[0].equalsIgnoreCase("create") && args.length == 2) {
-                            if (!ArenaManager.isArena(plot, args[0])) {
+                            if (!ArenaManager.isArena(plot, args[1])) {
                                 //TODO: Possibly add an arena limit?
                                 ArenaManager.createArena(player, args[1]);
                                 player.sendMessage(ChatColor.GREEN + "Arena " + args[1] + " has been added.");
+                            }
+                            else {
+                                player.sendMessage(ChatColor.RED + "That is already a Minigame Arena.");
                             }
                         }
                         else if(args[0].equalsIgnoreCase("list") && args.length == 1){
@@ -57,7 +60,7 @@ public class Commands implements CommandExecutor {
                                 }
                                 }
                             else {
-                                player.sendMessage(ChatColor.RED + " That is not a valid Arena name."); // list arenas?
+                                player.sendMessage(ChatColor.RED + " That is not a valid minigame name."); // list arenas?
                             }
                             }
                         else if (args[1].equalsIgnoreCase("setSpawn") && args.length == 2) {
@@ -83,18 +86,30 @@ public class Commands implements CommandExecutor {
                         else if (args[0].equalsIgnoreCase("start") && args.length == 2) {
                                 if (ArenaManager.isArena(plot, args[1])) {
                                     Arena a = ArenaManager.getArena(args[1], plot);
-                                    a.start();
-                                    ArenaManager.broadcastToPlot(plot, org.bukkit.ChatColor.GREEN
-                                            + args[1] + " arena has been enabled by " + player.getDisplayName());
+                                    if (!ArenaManager.getAllEnabledArenas().containsKey(a.getStringID())) {
+                                        a.start();
+                                        ArenaManager.broadcastToPlot(plot, org.bukkit.ChatColor.GREEN
+                                                + args[1] + " arena has been enabled by " + player.getDisplayName());
+                                    }
+                                    else {
+                                        commandSender.sendMessage(ChatColor.RED + "There is already an anabled arena in this plot.");
+                                    }
                                 }
                             }
                         else if (args[0].equalsIgnoreCase("end") && args.length == 2) {
                                 if (ArenaManager.isArena(plot, args[1])) {
                                     Arena a = ArenaManager.getArena(args[1], plot);
-                                    ArenaManager.broadcastToPlot(plot, org.bukkit.ChatColor.GREEN
-                                            + args[1] + " arena has been disabled by " + player.getDisplayName());
-                                    a.end();
-
+                                    if (ArenaManager.getAllEnabledArenas().containsKey(a.getStringID())) {
+                                        ArenaManager.broadcastToPlot(plot, org.bukkit.ChatColor.GREEN
+                                                + args[1] + " arena has been disabled by " + player.getDisplayName());
+                                        a.end();
+                                    }
+                                    else {
+                                        commandSender.sendMessage(ChatColor.RED + "This mini game is not enabled?");
+                                    }
+                                }
+                            else {
+                                    player.sendMessage(ChatColor.RED + " That is not a valid minigame name.");
                                 }
                             }
                         }

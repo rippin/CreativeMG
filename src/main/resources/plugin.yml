@@ -9,7 +9,7 @@ prefix: [CreativeMG]
 commands:
   mini:
     description: Command for minigames.
-
+    usage: /mini help
 
 
 

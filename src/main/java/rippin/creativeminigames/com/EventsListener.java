@@ -11,14 +11,19 @@ import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 
 /**
@@ -54,8 +59,8 @@ public class EventsListener implements Listener {
                                     //run delayed task here to remove both blocks;
                                     //TODO you need to clone the block somehow toevert it
                                     // saving the reference does nothing
-                                    a.getData().put(standing.getLocation(), standing);
-                                    a.getData().put(belowStanding.getLocation(), belowStanding);
+                                    a.getData().put(standing.getLocation(), standing.getType());
+                                    a.getData().put(belowStanding.getLocation(), belowStanding.getType());
                                     plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
                                         public void run() {
                                             standing.setType(Material.AIR);
@@ -93,6 +98,30 @@ public class EventsListener implements Listener {
                         a.getLostPlayers().add(player);
                         a.getPlayers().remove(player);
                         player.sendMessage(ChatColor.RED + "You have left the plot and abandoned the minigame.");
+                    }
+                    player.setGameMode(GameMode.CREATIVE); //because  its a creative server
+
+                }
+            }
+
+        }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event){
+        Player player = event.getPlayer();
+        PlotPlayer pp = BukkitUtil.getPlayer(player);
+        Plot plot = pp.getCurrentPlot();
+        if (plot != null) {
+
+            String id = plot.getId().x + "-" + plot.getId().y;
+
+            if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
+                for (Arena a : ArenaManager.getAllEnabledArenas().get(id)) {
+                    //only one arena so you can do this.
+                    if (a.getPlayers().contains(player)) {
+                        a.getLostPlayers().add(player);
+                        a.getPlayers().remove(player);
                     }
                     player.setGameMode(GameMode.CREATIVE); //because  its a creative server
 
@@ -150,7 +179,8 @@ public class EventsListener implements Listener {
         if (plot != null) {
             String id = plot.getId().x + "-" + plot.getId().y;
             if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
-                if (!event.getMessage().equalsIgnoreCase("spawn") || !event.getMessage().toLowerCase().contains("tp")){
+                if (!event.getMessage().toLowerCase().contains("spawn")
+                        && !event.getMessage().toLowerCase().contains("tp") && !event.getMessage().toLowerCase().contains("mini")){
                     event.setCancelled(true);
                 }
             }
@@ -171,7 +201,54 @@ public class EventsListener implements Listener {
                 }
             }
         }
+    @EventHandler
+    public void foodChangeEvent(FoodLevelChangeEvent event){
+       if (event.getEntity() instanceof  Player) {
+           Player player = (Player) event.getEntity();
 
+           PlotPlayer plotPlayer = BukkitUtil.getPlayer(player);
+           Plot plot = plotPlayer.getCurrentPlot();
+
+           if (plot != null) {
+               String id = plot.getId().x + "-" + plot.getId().y;
+               if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
+                   event.setCancelled(true);
+               }
+           }
+       }
+    }
+    @EventHandler
+    public void onDamage(EntityDamageByEntityEvent event){
+        if (event.getEntity() instanceof  Player) {
+            Player player = (Player) event.getEntity();
+
+            PlotPlayer plotPlayer = BukkitUtil.getPlayer(player);
+            Plot plot = plotPlayer.getCurrentPlot();
+
+            if (plot != null) {
+                String id = plot.getId().x + "-" + plot.getId().y;
+                if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
+                    event.setCancelled(true);
+                }
+            }
+        }
+    }
+    @EventHandler
+    public void onDamage(EntityDamageEvent event){
+        if (event.getEntity() instanceof  Player) {
+            Player player = (Player) event.getEntity();
+
+            PlotPlayer plotPlayer = BukkitUtil.getPlayer(player);
+            Plot plot = plotPlayer.getCurrentPlot();
+
+            if (plot != null) {
+                String id = plot.getId().x + "-" + plot.getId().y;
+                if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
+                    event.setCancelled(true);
+                }
+            }
+        }
+    }
     @EventHandler
     public void breakBlockEvent(BlockBreakEvent event) {
         Player player = event.getPlayer();
