@@ -11,8 +11,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -20,10 +19,12 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.ItemStack;
 
 
 /**
@@ -226,9 +227,33 @@ public class EventsListener implements Listener {
             Plot plot = plotPlayer.getCurrentPlot();
 
             if (plot != null) {
-                String id = plot.getId().x + "-" + plot.getId().y;
-                if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
-                    event.setCancelled(true);
+                Arena a = ArenaManager.getPlayersArena(player);
+                if (a != null) {
+                    if (a.getType() == GameType.TNTRUN) {
+                        event.setCancelled(true);
+                    }
+                    else if (a.getType() == GameType.PAINTBALL && a.getStatus() == GameStatus.INGAME){
+
+                        if (event.getDamager() instanceof Projectile){
+                            if (((Projectile) event.getDamager()).getShooter() instanceof Player ){
+                                if (event.getDamager() instanceof Snowball){
+                                    a.playerLost(player);
+                                }
+                            }
+                        }
+                    }
+                    else if (a.getType() == GameType.OITC && a.getStatus() == GameStatus.INGAME){
+
+                        if (event.getDamager() instanceof Projectile){
+                            if (((Projectile) event.getDamager()).getShooter() instanceof Player ){
+                                if (event.getDamager() instanceof Arrow){
+                                    a.playerLost(player);
+                                    ((Player) ((Projectile) event.getDamager()).
+                                            getShooter()).getInventory().addItem(new ItemStack(Material.ARROW));
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -247,6 +272,28 @@ public class EventsListener implements Listener {
                     event.setCancelled(true);
                 }
             }
+        }
+    }
+    @EventHandler
+    public void onPlayerDeath(PlayerDeathEvent event){
+        Player player = event.getEntity();
+        PlotPlayer pp = BukkitUtil.getPlayer(player);
+        Plot plot = pp.getCurrentPlot();
+        if (plot != null) {
+
+            String id = plot.getId().x + "-" + plot.getId().y;
+
+            if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
+                for (Arena a : ArenaManager.getAllEnabledArenas().get(id)) {
+                    if (a.getStatus() == GameStatus.INGAME) {
+                        if (a.getPlayers().contains(player)) {
+                            a.getLostPlayers().add(player);
+                            a.getPlayers().remove(player);
+                        }
+                    }
+                }
+            }
+
         }
     }
     @EventHandler

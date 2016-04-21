@@ -5,9 +5,11 @@ import com.intellectualcrafters.plot.object.PlotPlayer;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import rippin.creativeminigames.com.Configs.PlotArenaConfig;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 
 public class Arena {
@@ -40,12 +42,12 @@ public class Arena {
 
     }
     //make sure arena from this plot is not already enabled in command.
-    public void start(){
+    public boolean start(){
         status = GameStatus.STARTING;
+        if (locations.isEmpty() || type == null) return false;
         for (PlotPlayer player : plot.getPlayersInPlot()) {
             players.add(Bukkit.getPlayer(player.getUUID()));
         }
-        System.out.println("size: " + players.size());
         /*
             Check to make sure all settings are enabled.
          */
@@ -54,6 +56,7 @@ public class Arena {
         set.add(this);
         ArenaManager.allEnabledArenas.put(getStringID(), set);
         new ArenaWarmupTask(this, 10).start();
+        return true;
     }
 
     public void end(){
@@ -74,14 +77,46 @@ public class Arena {
         status = GameStatus.WAITING;
     }
 
-    public void startPlayers(Location loc){
-        if (type == GameType.TNTRUN)
-        for (Player player : players){
-            player.setGameMode(GameMode.ADVENTURE);
-            player.setHealth(player.getMaxHealth());
-            player.setFoodLevel(20);
-            player.teleport(loc);
+    public void startPlayers(List<Location> locs){
+        if (type == GameType.TNTRUN) {
+            for (Player player : players) {
+                player.getInventory().clear();
+                player.setGameMode(GameMode.ADVENTURE);
+                player.setHealth(player.getMaxHealth());
+                player.setFoodLevel(20);
+                player.teleport(locs.get(0));
 
+            }
+        }
+        else if (type == GameType.PAINTBALL){
+            for (Player player : players) {
+                player.getInventory().clear();
+                player.setGameMode(GameMode.ADVENTURE);
+                player.setHealth(player.getMaxHealth());
+                player.setFoodLevel(20);
+                int rand = ThreadLocalRandom.current().nextInt(0,locations.size() -1);
+                    if (locs.get(rand) == null)
+                        player.sendMessage("ERROR " + rand);
+                player.teleport(locs.get(rand));
+                player.getInventory().addItem(new ItemStack(Material.SNOW_BALL));
+                new SnowballTask(player,this).startCountdown();
+            }
+        }
+
+        else if (type == GameType.OITC){
+            for (Player player : players) {
+                player.getInventory().clear();
+                player.setGameMode(GameMode.ADVENTURE);
+                player.setHealth(player.getMaxHealth());
+                player.setFoodLevel(20);
+                int rand = ThreadLocalRandom.current().nextInt(0,locations.size() -1);
+
+                player.teleport(locs.get(rand));
+                player.getInventory().addItem(new ItemStack(Material.BOW));
+                player.getInventory().addItem(new ItemStack(Material.WOOD_SWORD));
+                player.getInventory().addItem(new ItemStack(Material.ARROW));
+
+            }
         }
     }
 
@@ -148,6 +183,7 @@ public class Arena {
     public void setStatus(GameStatus status) { this.status = status; }
     public void playerLost(Player player){
         player.setGameMode(GameMode.SPECTATOR);
+        player.getInventory().clear();
         lostPlayers.add(player);
         player.teleport(locations.get(0));
         player.sendMessage(ChatColor.RED + "You are in spectator mode until the game is over or you leave this plot.");

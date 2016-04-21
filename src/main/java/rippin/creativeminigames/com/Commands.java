@@ -17,12 +17,14 @@ public class Commands implements CommandExecutor {
         String unknownArguments = "Error: Illegal command.";
         if (command.getName().equalsIgnoreCase("mini")) {
             if (args.length == 0) {
-                //help messages
+                commandList(commandSender);
                 return true;
             }
             if (commandSender instanceof Player) {
                 Player player = (Player) commandSender;
-                PlotPlayer plotPlayer = BukkitUtil.getPlayer(player);
+
+                if (player.hasPermission("BCMinigames.user")) {
+                    PlotPlayer plotPlayer = BukkitUtil.getPlayer(player);
                 Plot plot = plotPlayer.getCurrentPlot();
                 //Plot is null if player is not in a plot
                 if (plot != null) {
@@ -31,95 +33,115 @@ public class Commands implements CommandExecutor {
                             if (!ArenaManager.isArena(plot, args[1])) {
                                 //TODO: Possibly add an arena limit?
                                 ArenaManager.createArena(player, args[1]);
-                                player.sendMessage(ChatColor.GREEN + "Arena " + args[1] + " has been added.");
+                                Utils.infoMessage(commandSender, "Arena " + args[1] + " has been added.");
+                            } else {
+                                Utils.errorMessage(commandSender, "That is already a Minigame Arena.");
                             }
-                            else {
-                                player.sendMessage(ChatColor.RED + "That is already a Minigame Arena.");
-                            }
+                            return true;
                         }
-                        else if(args[0].equalsIgnoreCase("list") && args.length == 1){
-                            ArenaManager.listArenasInPlot(plot,commandSender);
+                        else if (args[0].equalsIgnoreCase("list") && args.length == 1) {
+                            ArenaManager.listArenasInPlot(plot, commandSender);
                         }
-                        else if (args[0].equalsIgnoreCase("loadArenas") && args.length == 1) {
+                        else if ((args[0].equalsIgnoreCase("loadArenas")|| args[0].equalsIgnoreCase("load")) && args.length == 1) {
                             ArenaManager.loadAllArenasFromPlot(plot);
-                            player.sendMessage(ChatColor.GREEN + "Arenas have been loaded. Do /mini list to view them.");
+                            Utils.infoMessage(commandSender, "Arenas have been loaded. Do /mini list to view them.");
+                            return true;
                         }
-
                         else if (args[0].equalsIgnoreCase("remove") && args.length == 2) {
                             ArenaManager.removeArena(player, args[1]);
-                            player.sendMessage(ChatColor.GREEN + "Arena " + args[1] + " has been removed.");
+                            Utils.infoMessage(commandSender, "Arena " + args[1] + " has been removed.");
+                            return true;
                         }
-                        else if (args[1].equalsIgnoreCase("setType") && args.length == 3) {
+                    if (args.length > 1) {
+                        if (args[1].equalsIgnoreCase("setType") && args.length == 3) {
                             if (ArenaManager.isArena(plot, args[0])) {
                                 Arena a = ArenaManager.getArena(args[0], plot);
                                 if (a.setType(args[2]))
-                                    player.sendMessage(ChatColor.GREEN + "Type: " + args[2] + " has been set for" +
+                                    Utils.infoMessage(commandSender, "Type: " + args[2] + " has been set for" +
                                             "Arena " + args[0] + ".");
                                 else {
-                                    player.sendMessage(ChatColor.RED + "Not a valid gametype."); //list types maybe?
+                                    Utils.errorMessage(commandSender, "Not a valid game type.");
+                                    Utils.errorMessage(commandSender, "Valid game types: " + "&4 " + Utils.gameTypes());
                                 }
-                                }
-                            else {
-                                player.sendMessage(ChatColor.RED + " That is not a valid minigame name."); // list arenas?
+                            } else {
+                                Utils.errorMessage(commandSender, "That is not a valid mini game name."); // list arenas?
                             }
+                            return true;
+                        } else if (args[1].equalsIgnoreCase("setSpawn") && args.length == 2) {
+                            if (ArenaManager.isArena(plot, args[0])) {
+                                Arena a = ArenaManager.getArena(args[0], plot);
+                                int index = 0; //default spawn index
+                                a.setSpawn(index, player.getLocation());
+                                if (a.setSpawn(index, player.getLocation()))
+                                    Utils.infoMessage(commandSender, " Spawn: " + (index + 1) + " has been set for" +
+                                            "Arena " + args[0] + ".");
                             }
-                        else if (args[1].equalsIgnoreCase("setSpawn") && args.length == 2) {
-                                if (ArenaManager.isArena(plot, args[0])) {
-                                    Arena a = ArenaManager.getArena(args[0], plot);
-                                    int index = 0; //default spawn index
-                                    a.setSpawn(index, player.getLocation());
-                                    if (a.setSpawn(index, player.getLocation()))
-                                        player.sendMessage(ChatColor.GREEN + " Spawn: " + (index + 1) + " has been set for" +
-                                                "Arena " + args[0] + ".");
-                                }
+                            return true;
+                        } else if (args[1].equalsIgnoreCase("setSpawn") && args.length == 3) {
+                            if (ArenaManager.isArena(plot, args[0])) {
+                                Arena a = ArenaManager.getArena(args[0], plot);
+                                int index = Integer.valueOf(args[2]);
+                                if (a.setSpawn(index, player.getLocation()))
+                                    Utils.infoMessage(commandSender, " Spawn: " + (index + 1) + " has been set for" +
+                                            "Arena " + args[0] + ".");
                             }
-                        else if (args[1].equalsIgnoreCase("setSpawn") && args.length == 3) {
-                                if (ArenaManager.isArena(plot, args[0])) {
-                                    Arena a = ArenaManager.getArena(args[0], plot);
-                                    int index = Integer.valueOf(args[2]);
-                                    if (a.setSpawn(index, player.getLocation()))
-                                        player.sendMessage(ChatColor.GREEN + " Spawn: " + (index + 1) + " has been set for" +
-                                                "Arena " + args[0] + ".");
-                                }
-
-                            }
-                        else if (args[0].equalsIgnoreCase("start") && args.length == 2) {
-                                if (ArenaManager.isArena(plot, args[1])) {
-                                    Arena a = ArenaManager.getArena(args[1], plot);
-                                    if (!ArenaManager.getAllEnabledArenas().containsKey(a.getStringID())) {
-                                        a.start();
+                            return true;
+                        } else if (args[0].equalsIgnoreCase("start") && args.length == 2) {
+                            if (ArenaManager.isArena(plot, args[1])) {
+                                Arena a = ArenaManager.getArena(args[1], plot);
+                                if (!ArenaManager.getAllEnabledArenas().containsKey(a.getStringID())) {
+                                    if (a.start()) {
                                         ArenaManager.broadcastToPlot(plot, org.bukkit.ChatColor.GREEN
-                                                + args[1] + " arena has been enabled by " + player.getDisplayName());
+                                                + args[1] + " mini game has been started by " + player.getDisplayName());
+                                    } else {
+                                        Utils.errorMessage(commandSender, "This mini game is not set up. Do /mini list to view if you need to set a spawn or gametype.");
                                     }
-                                    else {
-                                        commandSender.sendMessage(ChatColor.RED + "There is already an anabled arena in this plot.");
-                                    }
+                                } else {
+                                    Utils.errorMessage(commandSender, "There is already an anabled mini game in this plot.");
                                 }
                             }
-                        else if (args[0].equalsIgnoreCase("end") && args.length == 2) {
-                                if (ArenaManager.isArena(plot, args[1])) {
-                                    Arena a = ArenaManager.getArena(args[1], plot);
-                                    if (ArenaManager.getAllEnabledArenas().containsKey(a.getStringID())) {
-                                        ArenaManager.broadcastToPlot(plot, org.bukkit.ChatColor.GREEN
-                                                + args[1] + " arena has been disabled by " + player.getDisplayName());
-                                        a.end();
-                                    }
-                                    else {
-                                        commandSender.sendMessage(ChatColor.RED + "This mini game is not enabled?");
-                                    }
+                            return true;
+                        } else if (args[0].equalsIgnoreCase("end") && args.length == 2) {
+                            if (ArenaManager.isArena(plot, args[1])) {
+                                Arena a = ArenaManager.getArena(args[1], plot);
+                                if (ArenaManager.getAllEnabledArenas().containsKey(a.getStringID())) {
+                                    ArenaManager.broadcastToPlot(plot, ChatColor.GREEN
+                                            + args[1] + " mini game has been disabled by " + player.getDisplayName());
+                                    a.end();
+                                } else {
+                                    Utils.errorMessage(commandSender, "This mini game is not enabled?");
                                 }
-                            else {
-                                    player.sendMessage(ChatColor.RED + " That is not a valid minigame name.");
-                                }
+                            } else {
+                                Utils.errorMessage(commandSender, "That is not a valid minigame name.");
                             }
+                            return true;
                         }
+                        else {
+                            Utils.errorMessage(commandSender, unknownArguments);
+                            return true;
+                        }
+                      }
+                    }
+                } else {
+                    Utils.errorMessage(commandSender, "You may only do mini game commands in a plot.");
                     }
                 }
-            else {
-                commandSender.sendMessage(ChatColor.RED + unknownArguments);
+                else {
+                    Utils.errorMessage(commandSender, "No permission to use these mini game commands.");
+                }
             }
-            return true;
         }
             return false;
+    }
+
+    private void commandList(CommandSender sender){
+        Utils.infoMessage(sender, "/mini create [name] - Create a minigame with a name");
+        Utils.infoMessage(sender, "/mini remove [name] - Create a minigame with a name");
+        Utils.infoMessage(sender, "/mini [name] setType [type]");
+        Utils.infoMessage(sender, "/mini [name] setSpawn [index] - Index is optional");
+        Utils.infoMessage(sender, "/mini start [name]");
+        Utils.infoMessage(sender, "/mini end [name]");
+        Utils.infoMessage(sender, "/mini list");
+        Utils.infoMessage(sender, "/mini load");
     }
 }

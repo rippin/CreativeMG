@@ -16,9 +16,14 @@ public class ArenaWarmupTask {
     }
 
     public void start(){
-        if (a.getType() == GameType.TNTRUN){
-            a.startPlayers(a.getLocations().get(0)); //default spawn
-        }
+            a.startPlayers(a.getLocations());
+      //No warmup needed for these gametypes.
+       if (a.getType() == GameType.PAINTBALL && a.getType() == GameType.OITC){
+           ArenaTask task = new ArenaTask(a, 1000);
+           a.setTask(task);
+           task.start();
+           return;
+       }
         task =  Bukkit.getServer().getScheduler().runTaskTimer(CreativeMGMain.plugin, new Runnable() {
             int i = iteration;
             public void run() {

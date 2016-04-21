@@ -189,7 +189,7 @@ public class ArenaManager {
         return false;
     }
 
-    public Arena getPlayersArena(Player player){
+    public static Arena getPlayersArena(Player player){
         Iterator it = allEnabledArenas.entrySet().iterator();
        PlotPlayer p =  BukkitUtil.getPlayer(player);
         Plot plot = p.getCurrentPlot();
@@ -238,12 +238,14 @@ public class ArenaManager {
             if (entry.getKey().equalsIgnoreCase(plot.getId().x + "-" + plot.getId().y))
                 for (Arena a : entry.getValue()){
                     if (a.getType() != null) {
-                        sender.sendMessage(ChatColor.GRAY + "Name: " + ChatColor.GREEN + a.getName() + "| " +
-                                ChatColor.GRAY + "Gametype: " + ChatColor.GREEN + a.getType().getString());
+                        Utils.infoMessage(sender, "&7Name: " + "&a" + a.getName() + "| " +
+                                "&7Gametype " + "&a"+ a.getType().getString() +
+                            " &7Spawns: " + "&a" +a.getLocations().size());
                     }
                     else {
-                        sender.sendMessage(ChatColor.GRAY + "Name: " + ChatColor.GREEN + a.getName() + "| " +
-                                ChatColor.GRAY + "Gametype: " + ChatColor.RED + "NOT SET");
+                        Utils.infoMessage(sender,"&7Name: " + "&a" + a.getName() + "| " +
+                                "&7Gametype " + "&4NOT SET" +
+                                " &7Spawns: " + "&a" + a.getLocations().size());
                     }
         }
         }
