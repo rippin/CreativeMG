@@ -146,7 +146,7 @@ public class Commands implements CommandExecutor {
         Utils.infoMessage(sender, "/mini remove [name] - Create a minigame with a name");
         Utils.infoMessage(sender, "/mini [name] setType [type]");
         Utils.infoMessage(sender, "/mini [name] addSpawn - Sets spawn at your location");
-        Utils.infoMessage(sender, "/mini [name] addSpawn - Removes all spawns.");
+        Utils.infoMessage(sender, "/mini [name] removeSpawn - Removes all spawns.");
         Utils.infoMessage(sender, "/mini start [name]");
         Utils.infoMessage(sender, "/mini end [name]");
         Utils.infoMessage(sender, "/mini list");
