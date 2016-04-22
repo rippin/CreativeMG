@@ -41,6 +41,7 @@ public class Commands implements CommandExecutor {
                         }
                         else if (args[0].equalsIgnoreCase("list") && args.length == 1) {
                             ArenaManager.listArenasInPlot(plot, commandSender);
+                            return true;
                         }
                         else if ((args[0].equalsIgnoreCase("loadArenas")|| args[0].equalsIgnoreCase("load")) && args.length == 1) {
                             ArenaManager.loadAllArenasFromPlot(plot);
@@ -50,6 +51,10 @@ public class Commands implements CommandExecutor {
                         else if (args[0].equalsIgnoreCase("remove") && args.length == 2) {
                             ArenaManager.removeArena(player, args[1]);
                             Utils.infoMessage(commandSender, "Arena " + args[1] + " has been removed.");
+                            return true;
+                        }
+                        else if(args[0].equalsIgnoreCase("help")){
+                            commandList(commandSender);
                             return true;
                         }
                     if (args.length > 1) {
@@ -67,26 +72,28 @@ public class Commands implements CommandExecutor {
                                 Utils.errorMessage(commandSender, "That is not a valid mini game name."); // list arenas?
                             }
                             return true;
-                        } else if (args[1].equalsIgnoreCase("setSpawn") && args.length == 2) {
+                        } else if (args[1].equalsIgnoreCase("addSpawn") && args.length == 2) {
                             if (ArenaManager.isArena(plot, args[0])) {
                                 Arena a = ArenaManager.getArena(args[0], plot);
-                                int index = 0; //default spawn index
-                                a.setSpawn(index, player.getLocation());
-                                if (a.setSpawn(index, player.getLocation()))
+                                int index = a.getLocations().size(); //default spawn index
+                                a.setSpawn(player.getLocation());
                                     Utils.infoMessage(commandSender, " Spawn: " + (index + 1) + " has been set for" +
-                                            "Arena " + args[0] + ".");
+                                            " mini game " + args[0] + ".");
                             }
+
                             return true;
-                        } else if (args[1].equalsIgnoreCase("setSpawn") && args.length == 3) {
+                        }
+                        else if (args[1].equalsIgnoreCase("removeSpawns") && args.length == 2) {
                             if (ArenaManager.isArena(plot, args[0])) {
                                 Arena a = ArenaManager.getArena(args[0], plot);
-                                int index = Integer.valueOf(args[2]);
-                                if (a.setSpawn(index, player.getLocation()))
-                                    Utils.infoMessage(commandSender, " Spawn: " + (index + 1) + " has been set for" +
-                                            "Arena " + args[0] + ".");
+                                a.removeSpawns();
+                                    Utils.infoMessage(commandSender, " Spawn have been removed for " +
+                                            "mini game " + args[0] + ".");
                             }
+
                             return true;
-                        } else if (args[0].equalsIgnoreCase("start") && args.length == 2) {
+                        }
+                         else if (args[0].equalsIgnoreCase("start") && args.length == 2) {
                             if (ArenaManager.isArena(plot, args[1])) {
                                 Arena a = ArenaManager.getArena(args[1], plot);
                                 if (!ArenaManager.getAllEnabledArenas().containsKey(a.getStringID())) {
@@ -97,7 +104,7 @@ public class Commands implements CommandExecutor {
                                         Utils.errorMessage(commandSender, "This mini game is not set up. Do /mini list to view if you need to set a spawn or gametype.");
                                     }
                                 } else {
-                                    Utils.errorMessage(commandSender, "There is already an anabled mini game in this plot.");
+                                    Utils.errorMessage(commandSender, "There is already an enabled mini game in this plot.");
                                 }
                             }
                             return true;
@@ -138,7 +145,8 @@ public class Commands implements CommandExecutor {
         Utils.infoMessage(sender, "/mini create [name] - Create a minigame with a name");
         Utils.infoMessage(sender, "/mini remove [name] - Create a minigame with a name");
         Utils.infoMessage(sender, "/mini [name] setType [type]");
-        Utils.infoMessage(sender, "/mini [name] setSpawn [index] - Index is optional");
+        Utils.infoMessage(sender, "/mini [name] addSpawn - Sets spawn at your location");
+        Utils.infoMessage(sender, "/mini [name] addSpawn - Removes all spawns.");
         Utils.infoMessage(sender, "/mini start [name]");
         Utils.infoMessage(sender, "/mini end [name]");
         Utils.infoMessage(sender, "/mini list");

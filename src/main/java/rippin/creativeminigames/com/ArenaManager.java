@@ -65,7 +65,7 @@ public class ArenaManager {
                 float pitch = (float) config.getDouble("Arena." + arena.getStringID() + "." + name + ".Spawn." + key + ".Pitch");
 
                 Location loc = new Location(w, x, y, z, yaw, pitch);
-                arena.setSpawn(Integer.valueOf(key), loc);
+                arena.setSpawn(loc);
                 System.out.println("Set spawn " + key + " for arena " + name);
 
             }

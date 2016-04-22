@@ -26,7 +26,7 @@ public class SnowballTask {
                 if (arena.getStatus() != GameStatus.INGAME && arena.getStatus() != GameStatus.STARTING)
                     cancel();
                 if (i == 0){
-                    if (player == null || !player.isOnline()){
+                    if (player == null || !player.isOnline() || !arena.getPlayers().contains(player)){
                         cancel();
                     }
                     else{

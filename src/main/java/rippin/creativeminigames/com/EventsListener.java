@@ -91,10 +91,10 @@ public class EventsListener implements Listener {
         if (plot != null) {
             Player player = event.getPlayer();
             String id = plot.getId().x + "-" + plot.getId().y;
-
+            System.out.println("hi");
             if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
                 for (Arena a : ArenaManager.getAllEnabledArenas().get(id)) {
-                    //only one arena so you can do this.
+                    if (a.getStatus() == GameStatus.STARTING || a.getStatus() == GameStatus.INGAME)
                     if (a.getPlayers().contains(player)) {
                         a.getLostPlayers().add(player);
                         a.getPlayers().remove(player);
@@ -143,8 +143,8 @@ public class EventsListener implements Listener {
                 for (Arena a : ArenaManager.getAllEnabledArenas().get(id)) {
                     //only one arena so you can do this.
                     player.setGameMode(GameMode.SPECTATOR); //because  its a creative server
-                    player.sendMessage(ChatColor.GREEN + "You have entered a plot that is currently" +
-                            "in a minigame. You may only spectate until the game is over.");
+                    player.sendMessage(ChatColor.GREEN + "You have entered a plot that is currently " +
+                            "in a mini game. You may only spectate until the game is over.");
                     a.getSpectators().add(player);
                 }
             }
@@ -245,12 +245,19 @@ public class EventsListener implements Listener {
                     else if (a.getType() == GameType.OITC && a.getStatus() == GameStatus.INGAME){
 
                         if (event.getDamager() instanceof Projectile){
+
                             if (((Projectile) event.getDamager()).getShooter() instanceof Player ){
+                                Player shooter = (Player)((Projectile) event.getDamager()).getShooter();
                                 if (event.getDamager() instanceof Arrow){
                                     a.playerLost(player);
-                                    ((Player) ((Projectile) event.getDamager()).
-                                            getShooter()).getInventory().addItem(new ItemStack(Material.ARROW));
+                                   shooter.getInventory().addItem(new ItemStack(Material.ARROW));
+                                    ArenaManager.broadcastToPlot(a.getPlot(), shooter.getDisplayName() + " has killed " + player.getDisplayName());
                                 }
+                            }
+                        }
+                        if (player.getHealth() - event.getFinalDamage() <=0){
+                            if (event.getDamager() instanceof  Player) {
+                                ArenaManager.broadcastToPlot(a.getPlot(), ((Player) event.getDamager()).getDisplayName() + " has killed " + player.getDisplayName());
                             }
                         }
                     }
@@ -262,14 +269,22 @@ public class EventsListener implements Listener {
     public void onDamage(EntityDamageEvent event){
         if (event.getEntity() instanceof  Player) {
             Player player = (Player) event.getEntity();
-
+            double damage = event.getFinalDamage();
             PlotPlayer plotPlayer = BukkitUtil.getPlayer(player);
             Plot plot = plotPlayer.getCurrentPlot();
 
             if (plot != null) {
-                String id = plot.getId().x + "-" + plot.getId().y;
-                if (ArenaManager.getAllEnabledArenas().containsKey(id)) {
-                    event.setCancelled(true);
+                Arena a = ArenaManager.getPlayersArena(player);
+                if (a != null){
+                    if (a.getStatus() == GameStatus.STARTING || a.getStatus() == GameStatus.ENDING){
+                        event.setCancelled(true);
+                    }
+                    else if (a.getStatus() == GameStatus.INGAME){
+                        if (player.getHealth() - damage <= 0){
+                            a.playerLost(player);
+                            event.setCancelled(true);
+                        }
+                    }
                 }
             }
         }

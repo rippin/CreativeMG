@@ -1,5 +1,6 @@
 package rippin.creativeminigames.com;
 
+import com.intellectualcrafters.plot.flag.Flag;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -26,7 +27,7 @@ public class ArenaTask {
                     ArenaManager.broadcastToPlot(a.getPlot(), "&4Time has run out.");
                     cancel();
                 }
-                    if (a.getPlayers().size() == 0){ //CHANGE BACK TO 1 JUST FOR TESTING
+                    if (a.getPlayers().size() == 1){ //CHANGE BACK TO 1 JUST FOR TESTING
                         a.playerWon(a.getPlayers());
                         a.end();
                         cancel();
@@ -42,6 +43,8 @@ public class ArenaTask {
     }
 
     public void cancel(){
+    if (a.getType() == GameType.OITC)
+        a.getPlot().setFlag("pvp", false);
         task.cancel();
     }
 }

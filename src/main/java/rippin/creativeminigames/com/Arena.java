@@ -22,7 +22,7 @@ public class Arena {
     private String name;
     private GameType type;
     private Plot plot;
-    private List<Location> locations = Arrays.asList(new Location[10]);
+    private List<Location> locations = new ArrayList<Location>();
     private GameStatus status;
     public Arena(String name, GameType type, Plot plot){
         this.name = name;
@@ -44,18 +44,32 @@ public class Arena {
     //make sure arena from this plot is not already enabled in command.
     public boolean start(){
         status = GameStatus.STARTING;
+        final Arena a = this;
         if (locations.isEmpty() || type == null) return false;
+        //Try this here because setFlag seems to call PlayerLeavePlotEvent?
+        if (getType() == GameType.OITC) {
+            System.out.println("yo");
+            getPlot().setFlag("pvp", true);
+        }
+        CreativeMGMain.plugin.getServer().getScheduler().runTaskLater(CreativeMGMain.plugin, new Runnable() {
+            public void run() {
+
+
+        System.out.println("fsf");
         for (PlotPlayer player : plot.getPlayersInPlot()) {
             players.add(Bukkit.getPlayer(player.getUUID()));
         }
+        System.out.println("y");
         /*
             Check to make sure all settings are enabled.
          */
         //Because right now there can only be one Arena enabled
         Set<Arena> set = new HashSet<Arena>();
-        set.add(this);
+        set.add(a);
         ArenaManager.allEnabledArenas.put(getStringID(), set);
-        new ArenaWarmupTask(this, 10).start();
+        new ArenaWarmupTask(a, 10).start();
+            }
+        },10L);
         return true;
     }
 
@@ -65,9 +79,15 @@ public class Arena {
         for (Player player : players){
             player.setGameMode(GameMode.CREATIVE);
             player.teleport(locations.get(0));
+            player.getInventory().clear();
+        }
+
+        for (Player player : spectators){
+            player.setGameMode(GameMode.CREATIVE);
         }
         getPlayers().clear();
         getLostPlayers().clear();
+        getSpectators().clear();
         Bukkit.getServer().getScheduler().runTaskLater(CreativeMGMain.plugin, new Runnable() {
             public void run() {
                 regenBlocks();
@@ -166,15 +186,9 @@ public class Arena {
         return plot.getId().x + "-" + plot.getId().y;
     }
 
-    public boolean setSpawn(int index, Location loc){
-        boolean flag = true;
-        if (type == GameType.TNTRUN) {
-
-            index = 0 ;
-        }
-        locations.set(index, loc);
-        ArenaManager.setSpawn(this, loc, index);
-        return flag;
+    public void setSpawn(Location loc){
+        locations.add(loc);
+        ArenaManager.setSpawn(this, loc, locations.size() - 1);
     }
 
     public GameStatus getStatus(){
@@ -205,6 +219,14 @@ public class Arena {
     }
     public void setTask(ArenaTask task){
         this.task = task;
+    }
+
+    public void removeSpawns(){
+        locations = new ArrayList<Location>();
+        for (String key : PlotArenaConfig.getConfig().getConfigurationSection("Arena." + getStringID() + "." + name + ".Spawn").getKeys(false)){
+            PlotArenaConfig.getConfig().set("Arena." + getStringID() + "." + name + ".Spawn." + key , null);
+        }
+        PlotArenaConfig.saveFile();
     }
 
     public HashMap<Location, Material> getData(){
