@@ -1,7 +1,7 @@
 package rippin.creativeminigames.com;
 
 public enum GameType {
-    TNTRUN("TNTRUN"), PAINTBALL("PAINTBALL"), OITC("OITC");
+    TNTRUN("TNTRUN"), PVPRUN("PVPRUN"), PAINTBALL("PAINTBALL"), OITC("OITC"), TNTSPLEEF("TNTSPLEEF");
     private String name;
 
     GameType(String s){

@@ -31,10 +31,17 @@ public class Commands implements CommandExecutor {
                     if (plot.isAdded(player.getUniqueId()) || plot.isOwner(player.getUniqueId())) {
                         if (args[0].equalsIgnoreCase("create") && args.length == 2) {
                             if (!ArenaManager.isArena(plot, args[1])) {
-                                //TODO: Possibly add an arena limit?
-                                ArenaManager.createArena(player, args[1]);
-                                Utils.infoMessage(commandSender, "Arena " + args[1] + " has been added.");
-                            } else {
+                                //TODO: hardcode in size but change it to get it from a config later
+                                if (ArenaManager.getArenas(plot).size() < 5) {
+                                    ArenaManager.createArena(player, args[1]);
+                                    Utils.infoMessage(commandSender, "Arena " + args[1] + " has been added.");
+                                }
+                                else {
+                                    Utils.errorMessage(commandSender, "You already have the max amount of mini " +
+                                            "game arenas. Do &a/mini remove [name] &7and remove one first.");
+                                }
+                            }
+                             else {
                                 Utils.errorMessage(commandSender, "That is already a Minigame Arena.");
                             }
                             return true;
@@ -131,10 +138,12 @@ public class Commands implements CommandExecutor {
                     }
                 } else {
                     Utils.errorMessage(commandSender, "You may only do mini game commands in a plot.");
+                    return true;
                     }
                 }
                 else {
                     Utils.errorMessage(commandSender, "No permission to use these mini game commands.");
+                    return true;
                 }
             }
         }
@@ -151,5 +160,6 @@ public class Commands implements CommandExecutor {
         Utils.infoMessage(sender, "/mini end [name]");
         Utils.infoMessage(sender, "/mini list");
         Utils.infoMessage(sender, "/mini load");
+        Utils.infoMessage(sender, "/mini help");
     }
 }

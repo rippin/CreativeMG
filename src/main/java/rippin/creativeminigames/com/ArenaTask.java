@@ -27,7 +27,7 @@ public class ArenaTask {
                     ArenaManager.broadcastToPlot(a.getPlot(), "&4Time has run out.");
                     cancel();
                 }
-                    if (a.getPlayers().size() == 1){ //CHANGE BACK TO 1 JUST FOR TESTING
+                    if (a.getPlayers().size() == 0){ //CHANGE BACK TO 1 JUST FOR TESTING
                         a.playerWon(a.getPlayers());
                         a.end();
                         cancel();

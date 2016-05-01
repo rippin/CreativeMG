@@ -4,6 +4,7 @@ import com.intellectualcrafters.plot.object.Plot;
 import com.intellectualcrafters.plot.object.PlotPlayer;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import rippin.creativeminigames.com.Configs.PlotArenaConfig;
@@ -18,6 +19,7 @@ public class Arena {
     private List<Player> spectators = new ArrayList<Player>();
     private List<Player> lostPlayers;
     private HashMap<Location, Material> data = new HashMap<Location, Material>();
+    private Map<Player, SnowballTask> snowballTasks = new HashMap<Player,SnowballTask>();
     private ArenaTask task;
     private String name;
     private GameType type;
@@ -47,53 +49,69 @@ public class Arena {
         final Arena a = this;
         if (locations.isEmpty() || type == null) return false;
         //Try this here because setFlag seems to call PlayerLeavePlotEvent?
-        if (getType() == GameType.OITC) {
-            System.out.println("yo");
+        if (getType() == GameType.OITC)
             getPlot().setFlag("pvp", true);
-        }
+        //For some reason setFlag calls PlotPlayerLeaveEvent so workaround is to delay adding players for 10 ticks.
         CreativeMGMain.plugin.getServer().getScheduler().runTaskLater(CreativeMGMain.plugin, new Runnable() {
+
             public void run() {
-
-
-        System.out.println("fsf");
-        for (PlotPlayer player : plot.getPlayersInPlot()) {
-            players.add(Bukkit.getPlayer(player.getUUID()));
-        }
-        System.out.println("y");
-        /*
-            Check to make sure all settings are enabled.
-         */
+            for (PlotPlayer player : plot.getPlayersInPlot()) {
+                players.add(Bukkit.getPlayer(player.getUUID()));
+             }
+                /*
+                Check to make sure all settings are enabled.
+                */
+                new ArenaWarmupTask(a, 10).start();
+            }
+        },10L);
         //Because right now there can only be one Arena enabled
         Set<Arena> set = new HashSet<Arena>();
         set.add(a);
         ArenaManager.allEnabledArenas.put(getStringID(), set);
-        new ArenaWarmupTask(a, 10).start();
-            }
-        },10L);
         return true;
     }
 
     public void end(){
         status = GameStatus.ENDING;
-        ArenaManager.getAllEnabledArenas().remove(getStringID());
-        for (Player player : players){
-            player.setGameMode(GameMode.CREATIVE);
-            player.teleport(locations.get(0));
-            player.getInventory().clear();
-        }
+    Bukkit.getServer().getScheduler().runTaskLater(CreativeMGMain.plugin, new Runnable() {
+        public void run() {
+            ArenaManager.getAllEnabledArenas().remove(getStringID());
+            for (Player player : players){
+                player.setGameMode(GameMode.CREATIVE);
+                player.teleport(locations.get(0));
+                player.getInventory().clear();
+                if (type == GameType.PAINTBALL) {
+                    if (snowballTasks.containsKey(player)) {
+                        SnowballTask task = snowballTasks.get(player);
+                        if (task != null)
+                            task.cancel();
+                    }
+                }
+            }
+            for (Player player : spectators) {
+                player.setGameMode(GameMode.CREATIVE);
+                player.teleport(locations.get(0));
+                if (type == GameType.PAINTBALL) {
+                    if (snowballTasks.containsKey(player)) {
+                        SnowballTask task = snowballTasks.get(player);
+                        if (task != null)
+                            task.cancel();
+                    }
+                }
+                player.getInventory().clear();
 
-        for (Player player : spectators){
-            player.setGameMode(GameMode.CREATIVE);
+            }
+            getPlayers().clear();
+            getLostPlayers().clear();
+            getSpectators().clear();
+            snowballTasks.clear();
         }
-        getPlayers().clear();
-        getLostPlayers().clear();
-        getSpectators().clear();
+    }, 12L);
         Bukkit.getServer().getScheduler().runTaskLater(CreativeMGMain.plugin, new Runnable() {
             public void run() {
                 regenBlocks();
             }
         }, 10L);
-        task.cancel();
         status = GameStatus.WAITING;
     }
 
@@ -108,6 +126,34 @@ public class Arena {
 
             }
         }
+
+
+        else if (type == GameType.PVPRUN){
+            for (Player player : players) {
+                player.getInventory().clear();
+                player.setGameMode(GameMode.ADVENTURE);
+                player.setHealth(player.getMaxHealth());
+                player.setFoodLevel(20);
+                player.teleport(locs.get(0));
+                player.getInventory().addItem(new ItemStack(Material.IRON_SWORD));
+
+            }
+        }
+        else if (type == GameType.TNTSPLEEF){
+            for (Player player : players) {
+                player.getInventory().clear();
+                player.setGameMode(GameMode.ADVENTURE);
+                player.setHealth(player.getMaxHealth());
+                player.setFoodLevel(20);
+                player.teleport(locs.get(0));
+                ItemStack is = new ItemStack(Material.BOW);
+                is.addEnchantment(Enchantment.ARROW_FIRE, 1);
+                is.addEnchantment(Enchantment.ARROW_INFINITE, 0);
+                player.getInventory().addItem(is);
+                player.getInventory().addItem(new ItemStack(Material.ARROW));
+
+            }
+        }
         else if (type == GameType.PAINTBALL){
             for (Player player : players) {
                 player.getInventory().clear();
@@ -119,7 +165,9 @@ public class Arena {
                         player.sendMessage("ERROR " + rand);
                 player.teleport(locs.get(rand));
                 player.getInventory().addItem(new ItemStack(Material.SNOW_BALL));
-                new SnowballTask(player,this).startCountdown();
+                SnowballTask t = new SnowballTask(player,this);
+                t.startCountdown();
+                snowballTasks.put(player, t);
             }
         }
 
@@ -144,6 +192,7 @@ public class Arena {
             if (!players.isEmpty())
             ArenaManager.broadcastToPlot(plot, players.get(0).getDisplayName() + ChatColor.GOLD + " has won");
     }
+
     @Override
     public boolean equals(Object that){
     if (this == that) return true;
@@ -200,8 +249,13 @@ public class Arena {
         player.getInventory().clear();
         lostPlayers.add(player);
         player.teleport(locations.get(0));
+        getPlayers().remove(player);
+        spectators.add(player);
         player.sendMessage(ChatColor.RED + "You are in spectator mode until the game is over or you leave this plot.");
         player.sendMessage(ChatColor.RED + "You can also use " + ChatColor.GRAY + "/spawn " + ChatColor.RED + " to leave the ");
+        if (type == GameType.TNTRUN)
+            ArenaManager.broadcastToPlot(plot, player.getDisplayName() + " &4has lost.");
+
     }
 
     public List<Player> getPlayers() {

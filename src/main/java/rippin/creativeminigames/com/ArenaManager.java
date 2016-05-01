@@ -66,8 +66,6 @@ public class ArenaManager {
 
                 Location loc = new Location(w, x, y, z, yaw, pitch);
                 arena.setSpawn(loc);
-                System.out.println("Set spawn " + key + " for arena " + name);
-
             }
         }
     }
@@ -83,6 +81,14 @@ public class ArenaManager {
             }
         }
         return loadArena(name, plot);
+    }
+
+    public static Set<Arena> getArenas(Plot plot){
+        String s = plot.getId().x + "-" + plot.getId().y;
+        if (getAllArenas().containsKey(s)){
+            return getAllArenas().get(s);
+        }
+        return new HashSet<Arena>();
     }
 
     public static void setSpawn(Arena arena, Location loc, int index){
@@ -195,9 +201,13 @@ public class ArenaManager {
         Plot plot = p.getCurrentPlot();
         while (it.hasNext()){
             Map.Entry<String, Set<Arena>> entry = (Map.Entry<String, Set<Arena>>) it.next();
-            String[] delim = entry.getKey().split("-");
-            if (plot.getId().x.toString().equalsIgnoreCase(delim[0]) && plot.getId().y.toString().equalsIgnoreCase(delim[1]))
-               return (Arena) entry.getValue().toArray()[0];
+            String id = plot.getId().x + "-" + plot.getId().y;
+            if (entry.getKey().equalsIgnoreCase(id)) {
+                System.out.println(entry.getValue().size());
+                for (Arena a : entry.getValue()) {
+                    return a;
+                }
+            }
         }
         return null;
     }
@@ -237,17 +247,29 @@ public class ArenaManager {
             Map.Entry<String, Set<Arena>> entry = (Map.Entry<String, Set<Arena>>) it.next();
             if (entry.getKey().equalsIgnoreCase(plot.getId().x + "-" + plot.getId().y))
                 for (Arena a : entry.getValue()){
+                    int spawns = a.getLocations().size();
+                    String s = (spawns == 0) ? "&4" + spawns : "&a" + spawns;
                     if (a.getType() != null) {
                         Utils.infoMessage(sender, "&7Name: " + "&a" + a.getName() + "| " +
                                 "&7Gametype " + "&a"+ a.getType().getString() +
-                            " &7Spawns: " + "&a" +a.getLocations().size());
+                            " &7Spawns: " + s);
                     }
                     else {
                         Utils.infoMessage(sender,"&7Name: " + "&a" + a.getName() + "| " +
                                 "&7Gametype " + "&4NOT SET" +
-                                " &7Spawns: " + "&a" + a.getLocations().size());
+                                " &7Spawns: " + s);
                     }
         }
+        }
+    }
+
+    public static void disableEmabledArenas(){
+        Iterator it = getAllEnabledArenas().entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Set<Arena>> entry = (Map.Entry<String, Set<Arena>>) it.next();
+            for (Arena a : entry.getValue()){
+                a.end();
+            }
         }
     }
 

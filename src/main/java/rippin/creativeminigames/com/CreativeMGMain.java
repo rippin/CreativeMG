@@ -22,6 +22,8 @@ public class CreativeMGMain extends JavaPlugin {
 
     public void onDisable(){
         plugin = null;
+        //disable all enabled arenas.
+        ArenaManager.disableEmabledArenas();
         logger.info(" has been enabled");
 
     }
