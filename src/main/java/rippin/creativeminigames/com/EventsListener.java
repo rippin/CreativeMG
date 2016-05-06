@@ -10,6 +10,7 @@ import com.plotsquared.bukkit.util.BukkitUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.*;
@@ -23,6 +24,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.BlockIterator;
 
 public class EventsListener implements Listener {
 
@@ -51,8 +53,8 @@ public class EventsListener implements Listener {
                             final Block standing = player.getLocation().getBlock().getRelative(BlockFace.DOWN);
                                 final Block belowStanding = standing.getLocation().add(0, -1, 0).getBlock();
                                 if (belowStanding.getType() == Material.TNT) {
-                                    a.getData().put(standing.getLocation(), standing.getType());
-                                    a.getData().put(belowStanding.getLocation(), belowStanding.getType());
+                                    a.setData(standing.getLocation(), standing);
+                                    a.setData(belowStanding.getLocation(), belowStanding);
                                     plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
                                         public void run() {
                                             standing.setType(Material.AIR);
@@ -69,6 +71,11 @@ public class EventsListener implements Listener {
                             }
                         }
 
+                        }
+                        else if (a.getType() == GameType.TNTSPLEEF && a.getStatus() == GameStatus.INGAME){
+                            if (player.getLocation().getBlock().getType() == Material.WATER || player.getLocation().getBlock().getType() == Material.STATIONARY_WATER || player.getLocation().getY() < -10){
+                                a.playerLost(player);
+                            }
                         }
                         return;
                     }
@@ -145,7 +152,7 @@ public class EventsListener implements Listener {
     }
 
     @EventHandler
-    public void projectileHit(ProjectileHitEvent event) {
+    public void projectileHit(final ProjectileHitEvent event) {
         if (event.getEntity().getShooter() instanceof Player) {
             Player player = (Player) event.getEntity().getShooter();
             if (event.getEntity() instanceof  Arrow) {
@@ -158,15 +165,27 @@ public class EventsListener implements Listener {
                         for (Arena a : ArenaManager.getAllEnabledArenas().get(id)) {
                                 if (a.getType() == GameType.TNTSPLEEF && a.getStatus() == GameStatus.INGAME) {
                                     if (a.getPlayers().contains(player)) {
-                                        final Block block = event.getEntity().getLocation().getBlock();
+                                        Arrow arrow = (Arrow) event.getEntity();
+                                        World world = arrow.getWorld();
+                                        BlockIterator iterator = new BlockIterator(world, arrow.getLocation().toVector(), arrow.getVelocity().normalize(), 0, 4);
+                                        Block block = null;
+
+                                        while(iterator.hasNext()) {
+                                            block = iterator.next();
+                                            if (block.getType() != Material.AIR)
+                                                break;
+                                        }
                                         if (block.getType() == Material.TNT) {
-                                            a.getData().put(block.getLocation(), block.getType());
+                                            a.setData(block.getLocation(), block);
+                                            block.setType(Material.AIR);
+                                           final Entity ent = player.getWorld().spawn(block.getLocation(), TNTPrimed.class);
                                             plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable() {
                                                 public void run() {
-                                                    block.setType(Material.AIR);
+                                                ent.remove();
+                                                    event.getEntity().remove();
 
                                                 }
-                                            }, 30L);
+                                            }, 60L);
                                         }
 
                                     }
@@ -258,7 +277,7 @@ public class EventsListener implements Listener {
             if (plot != null) {
                 Arena a = ArenaManager.getPlayersArena(player);
                 if (a != null) {
-                    if (a.getType() == GameType.TNTRUN) {
+                    if (a.getType() == GameType.TNTRUN || a.getType() == GameType.TNTSPLEEF) {
                         event.setCancelled(true);
                     }
                     else if (a.getType() == GameType.PAINTBALL && a.getStatus() == GameStatus.INGAME){
@@ -292,6 +311,7 @@ public class EventsListener implements Listener {
                         if (player.getHealth() - event.getFinalDamage() <=0){
                             if (event.getDamager() instanceof  Player) {
                                 ArenaManager.broadcastToPlot(a.getPlot(), ((Player) event.getDamager()).getDisplayName() + " has killed " + player.getDisplayName());
+                                ((Player) event.getDamager()).getInventory().addItem(new ItemStack(Material.ARROW));
                                 event.setCancelled(true);
                             }
                         }
@@ -313,19 +333,23 @@ public class EventsListener implements Listener {
                 if (a != null){
                     if (a.getStatus() == GameStatus.STARTING || a.getStatus() == GameStatus.ENDING){
                         event.setCancelled(true);
+                        return;
                     }
                     else if (a.getType() == GameType.TNTRUN) {
                         event.setCancelled(true);
+                        return;
                     }
-                    else if (a.getType() == GameType.PVPRUN){
+                    else if (a.getType() == GameType.PVPRUN || a.getType() == GameType.TNTSPLEEF){
                         if (event.getCause() == EntityDamageEvent.DamageCause.FALL){
                             event.setCancelled(true);
+                            return;
                         }
                     }
                     if (a.getStatus() == GameStatus.INGAME){
                         if (player.getHealth() - damage <= 0){
                             a.playerLost(player);
                             event.setCancelled(true);
+                            return;
                         }
                     }
                 }

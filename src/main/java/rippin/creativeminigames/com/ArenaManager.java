@@ -116,7 +116,15 @@ public class ArenaManager {
 
     public static Arena loadArena(String name, Plot p) {
         PlotId id = p.getId();
-        ConfigurationSection s = arenaConfig.getConfigurationSection("Arena." + id.x + "-" + id.y + "." + name);
+        String plotID = id.x + "-" + id.y;
+        if (getAllArenas().get(plotID) != null){
+            Set<Arena> arenas = getAllArenas().get(plotID);
+            for (Arena a : arenas){
+                if (a.getName().equalsIgnoreCase(name))
+                    return a;
+            }
+        }
+        ConfigurationSection s = arenaConfig.getConfigurationSection("Arena." + plotID  + "." + name);
 
         if (s == null) return null;
         Arena arena;
@@ -165,6 +173,7 @@ public class ArenaManager {
             }
             set.add(arena);
             getAllArenas().put(arena.getStringID(), set);
+            arena.regenBlocksAfterCrash(); //Do it when you load just because.
             //return the arena
         }
     }
@@ -246,18 +255,21 @@ public class ArenaManager {
         while (it.hasNext()){
             Map.Entry<String, Set<Arena>> entry = (Map.Entry<String, Set<Arena>>) it.next();
             if (entry.getKey().equalsIgnoreCase(plot.getId().x + "-" + plot.getId().y))
+                if (entry.getValue().isEmpty()){
+                    sender.sendMessage("Nothing here... Do /mini create or /mini load first...");
+                }
                 for (Arena a : entry.getValue()){
                     int spawns = a.getLocations().size();
                     String s = (spawns == 0) ? "&4" + spawns : "&a" + spawns;
                     if (a.getType() != null) {
-                        Utils.infoMessage(sender, "&7Name: " + "&a" + a.getName() + "| " +
-                                "&7Gametype " + "&a"+ a.getType().getString() +
-                            " &7Spawns: " + s);
+                        Utils.infoMessage(sender, "&7Name: " + "&a" + a.getName()  +
+                                " &7Gametype: " + "&a"+ a.getType().getString() +
+                            " &7Spawns: " + s, false);
                     }
                     else {
-                        Utils.infoMessage(sender,"&7Name: " + "&a" + a.getName() + "| " +
-                                "&7Gametype " + "&4NOT SET" +
-                                " &7Spawns: " + s);
+                        Utils.infoMessage(sender,"&7Name: " + "&a" + a.getName()  +
+                                " &7Gametype: " + "&4NOT SET" +
+                                " &7Spawns: " + s, false);
                     }
         }
         }

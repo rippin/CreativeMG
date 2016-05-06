@@ -11,7 +11,7 @@ public class Utils {
     public static String gameTypes(){
         String s = "";
         for (GameType type : GameType.values()){
-            s += type.getString() + " | ";
+            s += type.getString() + " , ";
         }
         return s;
     }
@@ -22,6 +22,14 @@ public class Utils {
     }
     public static  void infoMessage(CommandSender sender, String msg){
         sender.sendMessage(ChatColor.translateAlternateColorCodes('&', prefix + "&6" + msg));
+    }
+    public static  void infoMessage(CommandSender sender, String msg, boolean flag){
+        if (!flag) {
+            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',"&6" + msg));
+        }
+        else {
+            sender.sendMessage(ChatColor.translateAlternateColorCodes('&', prefix + "&6" + msg));
+        }
     }
 
 }
